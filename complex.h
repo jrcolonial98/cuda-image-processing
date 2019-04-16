@@ -1,9 +1,9 @@
 typedef struct complex complex_t;
 
-struct complex {
+typedef struct {
 	double real;
 	double imaginary;
-};
+} complex;
 
 // absolute value of complex
 double complex_abs(complex_t *c);
