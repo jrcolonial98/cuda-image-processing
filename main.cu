@@ -1,5 +1,8 @@
 #include <stdio.h>
+#include "bmp.h"
 
 int main() {
-	printf("Running FFT blur on image: \n");
+	bmp image;
+	init_bmp(&bmp, "MARBLES.BMP");
+	bmp_to_file(&bmp, "marbs.bmp");
 }

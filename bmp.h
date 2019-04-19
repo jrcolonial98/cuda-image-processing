@@ -25,7 +25,11 @@ typedef struct {
   bmp_header bmpheader;
     // 2D array, indexed first by one-dimensional pixel number then R/G/B val
     // for example data[y * width + x][0] = redval;
-  char** data;
+  char* data;
 } bmp;
 
-bmp_header*
+
+
+void init_bmp(bmp* data, char* file_name);
+
+void bmp_to_file(bmp* data, char* file_name);
