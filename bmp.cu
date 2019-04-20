@@ -17,7 +17,7 @@ void init_bmp(bmp* data, char* file_name) {
   }
 
   // read file header
-  n = fread(bdata, sizeof(bitmap_header), 1, file);
+  n = fread(bdata, sizeof(bmp_header), 1, file);
   if (n < 1) {
     // error - cleanup
     fclose(file);
@@ -66,7 +66,7 @@ void bmp_to_file(bmp* data, char* file_name) {
   }
 
   // write header to file
-  n = fwrite(data->bmpheader, sizeof(char), sizeof(bmp_header), out);
+  n = fwrite(&(data->bmpheader), sizeof(char), sizeof(bmp_header), out);
   if (n < 1) {
     // cleanup
     fclose(out);

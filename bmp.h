@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 typedef struct {
   char filetype[2]; // always 'B' 'M'
   unsigned int filesize;

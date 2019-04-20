@@ -1,21 +1,19 @@
-typedef struct complex complex_t;
-
 typedef struct {
 	double real;
 	double imaginary;
 } complex;
 
 // absolute value of complex
-double complex_abs(complex_t *c);
+double complex_abs(complex *c);
 
-complex_t complex_add(complex_t *a, complex_t *b);
+complex complex_add(complex *a, complex *b);
 
-complex_t complex_sub(complex_t *a, complex_t *b);
+complex complex_sub(complex *a, complex *b);
 
-complex_t complex_mult(complex_t *a, complex_t *b);
+complex complex_mult(complex *a, complex *b);
 
 // scale complex by a given factor
-complex_t complex_scale(complex_t *c, double val);
+complex complex_scale(complex *c, double val);
 
 // returns e^(-2 * pi * i)
-complex_t exp_to_complex(int k, int n, bool inv);
+complex exp_to_complex(int k, int n, bool inv);

@@ -3,6 +3,6 @@
 
 int main() {
 	bmp image;
-	init_bmp(&bmp, "MARBLES.BMP");
-	bmp_to_file(&bmp, "marbs.bmp");
+	init_bmp(&image, "MARBLES.BMP");
+	bmp_to_file(&image, "outtest.bmp");
 }
