@@ -32,8 +32,17 @@ typedef struct {
 
 
 
+// BITMAP OPERATIONS
+
 void init_bmp(bmp* data, char* file_name);
-
 void bmp_to_file(bmp* data, char* file_name);
-
 void print_bmp_data(bmp_header *data);
+
+
+
+// LITTLE ENDIAN TO BIG ENDIAN CONVERSIONS
+
+void convert_le(bmp_header *data);
+
+void convert_le_2(short *data);
+void convert_le_4(int *data);

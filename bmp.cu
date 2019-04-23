@@ -29,6 +29,8 @@ void init_bmp(bmp* data, char* file_name) {
     printf("error reading file header\n");
     return;
   }
+  // convert data to big endian
+  convert_le(bdata);
   print_bmp_data(bdata);
 
   // read the data of the image
@@ -65,6 +67,9 @@ void bmp_to_file(bmp* data, char* file_name) {
   file_header *fdata = &(bdata->fileheader);
   FILE *out;
   int n; // return value of file operations
+
+  // convert data back to little endian
+  convert_le(bdata);
 
   // open output file
   out = fopen(file_name, "wb"); // write binary mode
@@ -119,4 +124,52 @@ void print_bmp_data(bmp_header *data) {
 	printf("verticalres : int = %d\n", data->verticalres);
 	printf("numcolors : uint = %d\n", data->numcolors);
 	printf("importantcolors : uint = %d\n", data->importantcolors);
+}
+
+
+
+void convert_le(bmp_header *data) {
+  data->fileheader.filesize = convert_le_4(data->fileheader.filesize);
+  data->fileheader.reserved1 = convert_le_2(data->fileheader.reserved1);
+  data->fileheader.reserved2 = convert_le_2(data->fileheader.reserved2);
+  data->fileheader.dataoffset = convert_le_4(data->fileheader.dataoffset);
+
+  data->headersize = convert_le_4(data->headersize);
+  data->width = convert_le_4(data->width);
+  data->height = convert_le_4(data->height);
+  data->planes = convert_le_2(data->planes);
+  data->bitsperpixel = convert_le_2(data->bitsperpixel);
+  data->compression = convert_le_4(data->compression);
+  data->bitmapsize = convert_le_4(data->bitmapsize);
+  data->horizontalres = convert_le_4(data->horizontalres);
+  data->verticalres = convert_le_4(data->verticalres);
+  data->numcolors = convert_le_4(data->numcolors);
+  data->importantcolors = convert_le_4(data->importantcolors);
+}
+
+short convert_le_2(short data) {
+  int idata = (int)data;
+  int low_byte = idata >> 8;
+  idata = idata << 8;
+  idata = idata + low_byte;
+  short sdata = (short)idata;
+
+  return sdata;
+}
+
+int convert_le_4(int data) {
+  // split into two shorts, convert_le_2 both shorts
+  // then reverse the order of the shorts
+  int low_2bytes = data >> 16;
+  short slow_2bytes = (short)low_2bytes;
+  slow_2bytes = convert_le_2(slow_2bytes);
+
+  short shigh_2bytes = (short)data;
+  shigh_2bytes = convert_le_2(shigh_2bytes);
+
+  int idata = (int)shigh_2bytes;
+  idata = idata << 16;
+  idata = idata + (int)slow_2bytes;
+
+  return idata;
 }
