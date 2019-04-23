@@ -3,6 +3,8 @@
 
 int main() {
 	bmp image;
-	init_bmp(&image, "MARBLES.BMP");
+	printf("i got here\n");
+	init_bmp(&image, "MARBLES.bmp");
+	printf("got here\n");
 	bmp_to_file(&image, "outtest.bmp");
 }
