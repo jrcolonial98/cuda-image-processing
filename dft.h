@@ -1,34 +1,47 @@
 #include "complex.h"
 
-//function prototypes - not finished
+// structs for size of arrays when needed
+typdef struct {
+  int x; // rows
+  int y; // columns
+} dim_2d;
 
-int** blur(complex** arr);
+typedef struct {
+  int x;
+} dim_1d;
+
+
+
+// API ENDPOINTS
+
+// "blur" the values of a 2d array
+int** blur(complex** arr, dim_2d dim);
 
 
 
 // BLUR HELPERS
 
 // DFT by row
-complex** dft_row(complex** arr);
+complex** dft_row(complex** arr, dim_2d dim);
 
 // DFT by column
-complex** dft_col(complex** arr);
+complex** dft_col(complex** arr, dim_2d dim);
 
 // inverse DFT by row
-complex** dft_inv_row(complex** arr);
+complex** dft_inv_row(complex** arr, dim_2d dim);
 
 // inverse DFT by column
-complex** dft_inv_col(complex** arr);
+complex** dft_inv_col(complex** arr, dim_2d dim);
 
 // remove data based on distance from the corner
-complex** round(complex** arr);
+complex** round(complex** arr, dim_2d dim);
 
-// round absolute value to 0 or 1
-int** normalize(complex** arr);
+// round absolute value of a complex back to int
+int** normalize(complex** arr, dim_2d dim);
 
 
 
 // DFT HELPERS
-complex* fft(complex* x, bool inv);
-complex* fft_recursive(complex* x, int* indices, bool inv);
-complex* dft_combine(complex* odd, complex* even, bool inv);
+complex* fft(complex* x, dim_1d dim, bool inv);
+complex* fft_recursive(complex* x, int* indices, dim_1d idim, bool inv);
+complex* dft_combine(complex* odd, complex* even, dim_1d dim, bool inv);

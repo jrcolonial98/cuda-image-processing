@@ -10,17 +10,17 @@ typedef struct {
 
 typedef struct {
   file_header fileheader;
-  unsigned int headersize;
-  int width;
-  int height;
-  short planes;
-  short bitsperpixel; // must be 24
+  unsigned int headersize; // the size of this header (40 bytes)
+  int width; // in pixels
+  int height; // in pixels
+  short planes; // number of color planes (must be 1)
+  short bitsperpixel; // usually 24 - 3 bytes - R/G/B
   unsigned int compression; // not supported
-  unsigned int bitmapsize;
-  int horizontalres;
-  int verticalres;
-  unsigned int numcolors;
-  unsigned int importantcolors;
+  unsigned int bitmapsize; // size of the data in bytes (can be calculated)
+  int horizontalres; // pixels per meter
+  int verticalres; // pixels per meter
+  unsigned int numcolors; // number of colors within the palette
+  unsigned int importantcolors; // this is generally ignored
 } bmp_header;
 
 typedef struct {

@@ -1,0 +1,25 @@
+convert image into 3 2d arrays
+  red values
+  green values
+  blue values
+
+run 3 separate DFT's
+
+find out the actual ordering of bytes within bmp data
+  pixel by pixel
+  left to right, then bottom to top
+  each ROW is a multiple of four bytes (padded)
+  size of pixel is determined by bmp_header.pixelsize in bits.
+    multiply by row size then pad up to a multiple of 4
+  size of the entire data is bmp_header.bitmapsize
+
+can conversion between [r/g/b][row * len, col]
+  and [r/g/b][row][col]
+  formats be done in parallel?
+and then convert back.
+
+free old data, then bmp.data = new_data
+
+then write back
+
+texture mem?
