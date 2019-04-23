@@ -7,7 +7,7 @@ void init_bmp(bmp* data, char* file_name) {
   int n; // return value of file operations
 
   // open file
-  file = fopen(file_name, "r");
+  file = fopen(file_name, "rb"); // read binary mode
   if (file == NULL) {
     // error - cleanup
     fclose(file);
@@ -29,7 +29,7 @@ void init_bmp(bmp* data, char* file_name) {
     printf("error reading file header\n");
     return;
   }
-  printf("receiving this many bytes %d\n", bdata->bitmapsize);
+  print_bmp_data(bdata);
 
   // read the data of the image
   data->data = (char*)malloc(sizeof(char) * bdata->bitmapsize);
@@ -67,7 +67,7 @@ void bmp_to_file(bmp* data, char* file_name) {
   int n; // return value of file operations
 
   // open output file
-  out = fopen(file_name, "w");
+  out = fopen(file_name, "wb"); // write binary mode
   if (out == NULL) {
     // cleanup
     fclose(out);
@@ -96,4 +96,27 @@ void bmp_to_file(bmp* data, char* file_name) {
   fclose(out);
   free(out);
 
+}
+
+void print_bmp_data(bmp_header *data) {
+	printf("FILE HEADER:\n");
+	printf("filetype : char = %c %c\n", data->fileheader.filetype[0],
+		data->fileheader.filetype[1]);
+	printf("filesize : uint = %d\n", data->fileheader.filesize);
+	printf("reserved1, reserved2 : short = %d %d\n", data->fileheader.reserved1,
+		data->fileheader.reserved2);
+	printf("dataoffset : uint = %d\n", data->fileheader.dataoffset);
+
+	printf("\nBMP HEADER:\n");
+	printf("headersize : uint = %d\n", data->headersize);
+	printf("width : int = %d\n", data->width);
+	printf("height : int = %d\n", data->height);
+	printf("planes : short = %d\n", data->planes);
+	printf("bitsperpixel : short = %d\n", data->bitsperpixel);
+	printf("compression : uint = %d\n", data->compression);
+	printf("bitmapsize : uint = %d\n", data->bitmapsize);
+	printf("horizontalres : int = %d\n", data->horizontalres);
+	printf("verticalres : int = %d\n", data->verticalres);
+	printf("numcolors : uint = %d\n", data->numcolors);
+	printf("importantcolors : uint = %d\n", data->importantcolors);
 }

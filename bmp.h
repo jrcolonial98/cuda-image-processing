@@ -35,3 +35,5 @@ typedef struct {
 void init_bmp(bmp* data, char* file_name);
 
 void bmp_to_file(bmp* data, char* file_name);
+
+void print_bmp_data(bmp_header *data);
