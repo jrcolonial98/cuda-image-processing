@@ -14,6 +14,8 @@ void init_bmp(bmp* data, char* file_name) {
     free(file);
     free(data);
     data = NULL;
+    printf("error opening file\n");
+    return;
   }
 
   // read file header
@@ -24,7 +26,10 @@ void init_bmp(bmp* data, char* file_name) {
     free(file);
     free(data);
     data = NULL;
+    printf("error reading file header\n");
+    return;
   }
+  printf("receiving this many bytes %d\n", bdata->bitmapsize);
 
   // read the data of the image
   data->data = (char*)malloc(sizeof(char) * bdata->bitmapsize);
@@ -34,6 +39,8 @@ void init_bmp(bmp* data, char* file_name) {
     free(file);
     free(data);
     data = NULL;
+    printf("error reading image data\n");
+    return;
   }
   fseek(file, sizeof(char) * fdata->dataoffset, SEEK_SET);
   n=fread(data->data, sizeof(char), bdata->bitmapsize, file);
@@ -43,6 +50,8 @@ void init_bmp(bmp* data, char* file_name) {
     free(file);
     free(data);
     data = NULL;
+    printf("error reading image data 2\n");
+    return;
   }
 
   // cleanup
@@ -66,7 +75,7 @@ void bmp_to_file(bmp* data, char* file_name) {
   }
 
   // write header to file
-  n = fwrite(&(data->bmpheader), sizeof(char), sizeof(bmp_header), out);
+  n = fwrite(bdata, sizeof(char), sizeof(bmp_header), out);
   if (n < 1) {
     // cleanup
     fclose(out);
@@ -75,6 +84,7 @@ void bmp_to_file(bmp* data, char* file_name) {
 
   // write data to file
   fseek(out, sizeof(char) * fdata->dataoffset, SEEK_SET);
+  printf("writing this many bytes %d", bdata->bitmapsize);
   n = fwrite(data->data, sizeof(char), bdata->bitmapsize, out);
   if (n < 1) {
     // cleanup

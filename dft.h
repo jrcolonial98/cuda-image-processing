@@ -1,7 +1,7 @@
 #include "complex.h"
 
 // structs for size of arrays when needed
-typdef struct {
+typedef struct {
   int x; // rows
   int y; // columns
 } dim_2d;
