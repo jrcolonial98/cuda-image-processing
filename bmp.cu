@@ -19,6 +19,18 @@ void init_bmp(bmp* data, char* file_name) {
   }
 
   // read file header
+  char file_type[2];
+  file_type[0] = '\0';
+  file_type[1] = '\0';
+  n = fread(file_type, 2, 1, file);
+  if (file_type[0] != 'B' || file_type[1] != 'M') {
+    fclose(file);
+    free(file);
+    free(data);
+    data = NULL;
+    printf("file is not bitmap encoded\n");
+    return;
+  }
   n = fread(bdata, sizeof(bmp_header), 1, file);
   if (n < 1) {
     // error - cleanup
@@ -30,7 +42,7 @@ void init_bmp(bmp* data, char* file_name) {
     return;
   }
   // convert data to big endian
-  convert_le(bdata);
+  //convert_le(bdata);
   print_bmp_data(bdata);
 
   // read the data of the image
@@ -104,15 +116,15 @@ void bmp_to_file(bmp* data, char* file_name) {
 }
 
 void print_bmp_data(bmp_header *data) {
-	printf("FILE HEADER:\n");
-	printf("filetype : char = %c %c\n", data->fileheader.filetype[0],
-		data->fileheader.filetype[1]);
+	printf("FILE HEADER: (size=%d)\n", (int)sizeof(file_header));
+	//printf("filetype : char = %c %c\n", data->fileheader.filetype[0],
+	//	data->fileheader.filetype[1]);
 	printf("filesize : uint = %d\n", data->fileheader.filesize);
 	printf("reserved1, reserved2 : short = %d %d\n", data->fileheader.reserved1,
 		data->fileheader.reserved2);
 	printf("dataoffset : uint = %d\n", data->fileheader.dataoffset);
 
-	printf("\nBMP HEADER:\n");
+	printf("\nBMP HEADER: (size-%d)\n", (int)sizeof(bmp_header));
 	printf("headersize : uint = %d\n", data->headersize);
 	printf("width : int = %d\n", data->width);
 	printf("height : int = %d\n", data->height);

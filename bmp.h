@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 typedef struct {
-  char filetype[2]; // always 'B' 'M'
+  //char filetype[2]; // always 'B' 'M'
   unsigned int filesize;
   short reserved1;
   short reserved2;
@@ -44,5 +44,5 @@ void print_bmp_data(bmp_header *data);
 
 void convert_le(bmp_header *data);
 
-void convert_le_2(short *data);
-void convert_le_4(int *data);
+short convert_le_2(short data);
+int convert_le_4(int data);
