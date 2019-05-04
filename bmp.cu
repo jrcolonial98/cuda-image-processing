@@ -7,7 +7,7 @@ void init_bmp(bmp* data, char* file_name) {
   int n; // return value of file operations
 
   // open file
-  file = fopen(file_name, "rb"); // read binary mode
+  file = fopen(file_name, "r"); // read binary mode
   if (file == NULL) {
     // error - cleanup
     fclose(file);
@@ -41,8 +41,7 @@ void init_bmp(bmp* data, char* file_name) {
     printf("error reading file header\n");
     return;
   }
-  // convert data to big endian
-  //convert_le(bdata);
+  format_bmp_data(bdata);
   print_bmp_data(bdata);
 
   // read the data of the image
@@ -80,12 +79,20 @@ void bmp_to_file(bmp* data, char* file_name) {
   FILE *out;
   int n; // return value of file operations
 
-  // convert data back to little endian
-  convert_le(bdata);
-
   // open output file
   out = fopen(file_name, "wb"); // write binary mode
   if (out == NULL) {
+    // cleanup
+    fclose(out);
+    free(out);
+  }
+
+  // write "BM" to file
+  char bm[2];
+  bm[0] = 'B';
+  bm[1] = 'M';
+  n = fwrite(bm, sizeof(char) * 2, 1, out);
+  if (n < 1) {
     // cleanup
     fclose(out);
     free(out);
@@ -101,7 +108,6 @@ void bmp_to_file(bmp* data, char* file_name) {
 
   // write data to file
   fseek(out, sizeof(char) * fdata->dataoffset, SEEK_SET);
-  printf("writing this many bytes %d", bdata->bitmapsize);
   n = fwrite(data->data, sizeof(char), bdata->bitmapsize, out);
   if (n < 1) {
     // cleanup
@@ -115,7 +121,19 @@ void bmp_to_file(bmp* data, char* file_name) {
 
 }
 
+void format_bmp_data(bmp_header *data) {
+  if (data->bitmapsize == 0) {
+    int width_size = data->bitsperpixel * data->width;
+    while (width_size % 32 != 0) {
+      width_size++;
+    }
+    int full_size = width_size * data->height / 16;
+    data->bitmapsize = full_size;
+  }
+}
+
 void print_bmp_data(bmp_header *data) {
+	printf("File information:\n");
 	printf("FILE HEADER: (size=%d)\n", (int)sizeof(file_header));
 	//printf("filetype : char = %c %c\n", data->fileheader.filetype[0],
 	//	data->fileheader.filetype[1]);
