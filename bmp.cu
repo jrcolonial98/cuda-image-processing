@@ -127,7 +127,7 @@ void format_bmp_data(bmp_header *data) {
     while (width_size % 32 != 0) {
       width_size++;
     }
-    int full_size = width_size * data->height / 16;
+    int full_size = width_size * data->height / 8;
     data->bitmapsize = full_size;
   }
 }
