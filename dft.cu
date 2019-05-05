@@ -1,5 +1,4 @@
 #include "dft.h"
-#include "bmp.h"
 
 
 // API ENDPOINTS
@@ -11,36 +10,37 @@ int** blur(complex** arr, dim_2d dim);
 
 // BLUR HELPERS
 
-complex** dft_row(complex** arr, dim_2d dim);
+//complex** dft_row(complex** arr, dim_2d dim);
 
 // DFT by column
-complex** dft_col(complex** arr, dim_2d dim);
+//complex** dft_col(complex** arr, dim_2d dim);
 
 // inverse DFT by row
-complex** dft_inv_row(complex** arr, dim_2d dim);
+//complex** dft_inv_row(complex** arr, dim_2d dim);
 
 // inverse DFT by column
-complex** dft_inv_col(complex** arr, dim_2d dim);
+//complex** dft_inv_col(complex** arr, dim_2d dim);
 
 // remove data based on distance from the corner
-complex** round(complex** arr, dim_2d dim);
+//complex** round(complex** arr, dim_2d dim);
 
 // round absolute value of a complex back to int
-int** normalize(complex** arr, dim_2d dim);
+//int** normalize(complex** arr, dim_2d dim);
 
 
 
 // DFT HELPERS
-complex* fft(complex* x, dim_1d dim, bool inv);
-complex* fft_recursive(complex* x, int* indices, dim_1d idim, bool inv);
-complex* dft_combine(complex* odd, complex* even, dim_1d dim, bool inv);
+//complex* fft(complex* x, dim_1d dim, bool inv);
+//complex* fft_recursive(complex* x, int* indices, dim_1d idim, bool inv);
+//complex* dft_combine(complex* odd, complex* even, dim_1d dim, bool inv);
 
 
 
 // MISC
 
-char** extract_rgb_cpu(bmp* bdata) {
-  char* data = bdata->data;
+char** extract_rgb_cpu(bmp* bmpdata) {
+  char* data = bmpdata->data;
+  bmp_header* bdata = &(bmpdata->bmpheader);
   int bytespercolor = bdata->bitsperpixel / 24; // generally equals 1
   int bytesperrow_new = bytespercolor * bdata->width;
   int bytesperrow_old = bytesperrow_new * 3;
@@ -81,6 +81,34 @@ char** extract_rgb_cpu(bmp* bdata) {
   return converted_data;
 }
 
-char* combine_rgb_cpu(char** data) {
-  
+void combine_rgb_cpu(bmp* bmpdata, char** data) {
+  char* combined_data = bmpdata->data;
+  bmp_header* bdata = &(bmpdata->bmpheader);
+  int bytespercolor = bdata->bitsperpixel / 24; // generally equals 1
+  int bytesperrow_old = bytespercolor * bdata->width;
+  int bytesperrow_new = bytesperrow_old * 3;
+  while (bytesperrow_new % 4 != 0) { // BMP format requires row length % 4 == 0
+    bytesperrow_new++;
+  }
+  int bytesperpixel = bytespercolor * 3; // generall equals 3
+
+  for (int color = 0; color < 3; color++) {
+    int color_new = color * bytespercolor;
+
+    for (int y = 0; y < bdata->height; y++) {
+      int row_new = y * bytesperrow_new;
+      int row_old = y * bytesperrow_old;
+
+      for (int x = 0; x < bdata->width; x++) {
+        int col_new = x * bytesperpixel;
+        int col_old = x * bytespercolor;
+        int offset_new = row_new + col_new + color_new;
+        int offset_old = row_old + col_old;
+
+        for (int i = 0; i < bytespercolor; i++) {
+          combined_data[offset_new + i] = data[(color+2)%3][offset_old + i];
+        }
+      }
+    }
+  }
 }

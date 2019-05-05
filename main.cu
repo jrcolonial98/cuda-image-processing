@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "bmp.h"
+#include "dft.h"
 
 int main(int argc, char *argv[]) {
   char* file_name = argv[1];
@@ -14,6 +15,8 @@ int main(int argc, char *argv[]) {
   new_data = blur(formatted_data);
   image.data = new_data;
   */
+  char** cdata = extract_rgb_cpu(&image);
+  combine_rgb_cpu(&image, cdata);
 
   printf("Writing data to file: %s\n\n", out_file_name);
   bmp_to_file(&image, out_file_name);

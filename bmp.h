@@ -1,3 +1,6 @@
+#ifndef BMP_H
+#define BMP_H
+
 #include <stdio.h>
 
 typedef struct {
@@ -47,3 +50,6 @@ void convert_le(bmp_header *data);
 
 short convert_le_2(short data);
 int convert_le_4(int data);
+
+
+#endif
