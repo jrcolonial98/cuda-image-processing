@@ -106,7 +106,29 @@ void dft_row(carray2d* carr) {
 }
 
 // DFT by column
-//void dft_col(carray2d* carr);
+void dft_col(carray2d* carr) {
+  complex* arr = carr->arr;
+
+  for (int i = 0; i < carr->x; i++) { // for every column
+    complex* column = (complex*)malloc(carr->x * sizeof(complex));
+    for (int j = 0; j < carr->y; j++) { // copy into new array
+      column[j] = arr[j * carr->x + i];
+    }
+
+    carray1d ccol;
+    ccol.arr = column;
+    ccol.x = carr->y;
+
+    fft(&ccol, false); // transform array
+
+    for (int j = 0; j < carr->y; j++) { // copy back
+      column[j] = arr[j * carr->x + i];
+      arr[j * carr->x + i] = column[j];
+    }
+
+    free(column);
+  }
+}
 
 // inverse DFT by row
 //void dft_inv_row(carray2d* carr);
@@ -131,7 +153,9 @@ void fft(carray1d carr, bool inv) {
   }
 
   complex* new_arr = fft_recursive(carr, all_indices, inv);
-  carr->arr = new_arr;
+  for (int i = 0; i < carr->x; i++) {
+    arr[i] = new_arr[i];
+  }
 
   if (inv) {
     double scale = 1.0 / (double)(carr->x);
@@ -140,6 +164,7 @@ void fft(carray1d carr, bool inv) {
     }
   }
 
+  free(new_arr);
   free(all_indices);
 }
 complex* fft_recursive(complex* arr, int* indices, int indices_len, bool inv) {
@@ -184,9 +209,26 @@ complex* fft_recursive(complex* arr, int* indices, int indices_len, bool inv) {
   return result;
 }
 complex* dft_combine(complex** arrs, int num_groups, int groupsize, bool inv) {
-  complex* result = (complex*)malloc(num_groups * groupsize * sizeof(complex));
+  int N = num_groups * groupsize;
 
-  for (int k = 0; k < groupsize; k++) {
-    
+  complex* result = (complex*)malloc(N * sizeof(complex));
+
+
+  for (int k = 0; k < N; k++) {
+    complex total;
+    total.real = 0.0;
+    total.imaginary = 0.0;
+
+    for (int i = 0; i < num_groups; i++) {
+      complex num = result[i][k % groupsize];
+      complex factor = exp_to_complex(k * i, N, inv);
+      complex num_times_factor = complex_mult(&factor, &num);
+
+      total = complex_add(&total, &num_times_factor);
+    }
+
+    result[k] = total;
   }
+
+  return result;
 }
