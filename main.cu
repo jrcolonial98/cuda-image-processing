@@ -19,5 +19,5 @@ int main(int argc, char *argv[]) {
 
   // write to file
   printf("Writing data to file: %s\n\n", out_file_name);
-  bmp_to_file(&image, out_file_name);
+  bmp_to_file(&bitmap, out_file_name);
 }
