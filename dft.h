@@ -35,9 +35,9 @@ void normalize(carray2d* carr);
 
 
 // DFT HELPERS
-complex* fft(carray1d carr, bool inv);
-complex* fft_recursive(carray1d carr, int* indices, int indices_len, bool inv);
-complex* dft_combine(carray1d carr_odd, carray1d carr_even, bool inv);
+void fft(carray1d carr, bool inv);
+complex* fft_recursive(complex* arr, int* indices, int indices_len, bool inv);
+complex* dft_combine(complex** arrs, int num_groups, int groupsize, bool inv);
 
 
 

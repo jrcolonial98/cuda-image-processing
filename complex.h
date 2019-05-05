@@ -7,7 +7,7 @@ typedef struct {
 } complex;
 
 typedef struct {
-	complex** arr;
+	complex* arr;
 	int x;
 	int y;
 } carray2d;
