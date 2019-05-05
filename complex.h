@@ -1,7 +1,21 @@
+#ifndef COMPLEX_H
+#define COMPLEX_H
+
 typedef struct {
 	double real;
 	double imaginary;
 } complex;
+
+typedef struct {
+	complex** arr;
+	int x;
+	int y;
+} carray2d;
+
+typedef struct {
+	complex* arr;
+	int x;
+} carray1d;
 
 // absolute value of complex
 double complex_abs(complex *c);
@@ -17,3 +31,5 @@ complex complex_scale(complex *c, double val);
 
 // returns e^(-2 * pi * i)
 complex exp_to_complex(int k, int n, bool inv);
+
+#endif

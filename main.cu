@@ -15,9 +15,9 @@ int main(int argc, char *argv[]) {
   printf("Converting image data... \n\n");
   image img;
   extract_rgb_cpu(&bitmap, &img);
-  combine_rgb_cpu(&bitmap, &img);
 
   // write to file
   printf("Writing data to file: %s\n\n", out_file_name);
+	combine_rgb_cpu(&bitmap, &img);
   bmp_to_file(&bitmap, out_file_name);
 }
