@@ -2,7 +2,6 @@
 #define DFT_H
 
 #include "complex.h"
-#include "bmp.h"
 
 // structs for size of arrays when needed
 typedef struct {
@@ -50,16 +49,6 @@ complex* fft(complex* x, dim_1d dim, bool inv);
 complex* fft_recursive(complex* x, int* indices, dim_1d idim, bool inv);
 complex* dft_combine(complex* odd, complex* even, dim_1d dim, bool inv);
 
-
-
-// MISC
-
-// convert from data[row][col][r/g/b] to data[r/g/b][row][col]
-// returns result where result[0] = red, result[1] = green, result[2] = blue
-char** extract_rgb_cpu(bmp* bmpdata);
-
-// undo the process in extract_rgb
-void combine_rgb_cpu(bmp* bmpdata, char** data);
 
 
 #endif

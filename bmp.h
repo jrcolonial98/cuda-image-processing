@@ -33,6 +33,13 @@ typedef struct {
   char* data;
 } bmp;
 
+typedef struct {
+  int width;
+  int height;
+  int bytespercolor;
+
+  char** data;
+}  image;
 
 
 // BITMAP OPERATIONS
@@ -52,4 +59,19 @@ short convert_le_2(short data);
 int convert_le_4(int data);
 
 
+
+// IMAGE CONVERSIONS
+
+// convert from data[row][col][r/g/b] to data[r/g/b][row][col]
+// returns result where result[0] = red, result[1] = green, result[2] = blue
+void extract_rgb_cpu(bmp* bmpdata, image* img);
+
+// undo the process in extract_rgb
+void combine_rgb_cpu(bmp* bmpdata, image* img);
+
+
+
+// IMAGE OPERATIONS
+
+void to_black_and_white(char** data);
 #endif
