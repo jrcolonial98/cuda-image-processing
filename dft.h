@@ -27,7 +27,7 @@ void dft_inv_row(carray2d* carr);
 void dft_inv_col(carray2d* carr);
 
 // remove data based on distance from the corner
-void round(carray2d* carr);
+void round(carray2d* carr, double round_factor);
 
 // round absolute value of a complex back to int
 void normalize(carray2d* carr);

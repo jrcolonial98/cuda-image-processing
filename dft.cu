@@ -32,7 +32,7 @@ void blur(image* img) {
   carr_blue.x = img->width;
   carr_blue.y = img->height;
 
-  carray2d* carr[3] = (carray2d**)malloc(3 * sizeof(carray2d*));
+  carray2d carr[3] = (carray2d*)malloc(3 * sizeof(carray2d));
   carr[0] = carr_red;
   carr[1] = carr_green;
   carr[2] = carr_blue;
@@ -68,15 +68,41 @@ void blur(image* img) {
 
   // blur the image
   for (int i = 0; i < 3; i++) {
-    dft_row(carr + i);
-    dft_col(carr + i);
+    dft_row(carr + i, false);
+    dft_col(carr + i, false);
     round(carr + i);
-    dft_inv_col(carr + i);
-    dft_inv_row(carr + i);
+    dft_col(carr + i, true);
+    dft_row(carr + i, true);
   }
 
-  // normalize the data and convert back
-  normalize(img, carr);
+  // convert back to data
+  // TODO: move into helper function
+  for (int color = 0; color < 3; color++) {
+    for (int y = 0; y < bdata->height; y++) {
+      int row_data = y * img->bytespercolor * dim.x;
+      int row_arr = y * dim.x;
+
+      for (int x = 0; x < bdata->width; x++) {
+        int col_data = x * img->bytespercolor;
+        int col_arr = x;
+        int offset_data = row_data + col_data;
+        int offset_arr = row_arr + col_arr;
+
+        complex cvalue = arr[color][offset_arr];
+        double abs_val = complex_abs(&cvalue);
+        int int_val = (int)(abs_val * 256.0);
+        for (int i = 0; i < img->bytespercolor - 1; i++) {
+          int_val *= 256;
+        }
+
+        for (int i = img->bytespercolor - 1; i >= 0; i--) {
+          char next_char = (char)(int_val >> (8 * i));
+          int byte_offset = img->bytespercolor - 1 - i;
+          data[color][offset_data + byte_offset] = next_char;
+        }
+      }
+    }
+  }
 
   // cleanup
   free(red);
@@ -90,7 +116,7 @@ void blur(image* img) {
 // BLUR HELPERS
 
 // DFT by row
-void dft_row(carray2d* carr) {
+void dft_row(carray2d* carr, bool inv) {
   complex* arr = carr->arr;
 
   for (int i = 0; i < carr->y; i++) { // for every row
@@ -101,12 +127,12 @@ void dft_row(carray2d* carr) {
     crow->arr = row;
     crow->x = carr->x;
 
-    fft(crow, false);
+    fft(crow, inv);
   }
 }
 
 // DFT by column
-void dft_col(carray2d* carr) {
+void dft_col(carray2d* carr, bool inv) {
   complex* arr = carr->arr;
 
   for (int i = 0; i < carr->x; i++) { // for every column
@@ -119,7 +145,7 @@ void dft_col(carray2d* carr) {
     ccol.arr = column;
     ccol.x = carr->y;
 
-    fft(&ccol, false); // transform array
+    fft(&ccol, inv); // transform array
 
     for (int j = 0; j < carr->y; j++) { // copy back
       column[j] = arr[j * carr->x + i];
@@ -130,17 +156,45 @@ void dft_col(carray2d* carr) {
   }
 }
 
-// inverse DFT by row
-//void dft_inv_row(carray2d* carr);
-
-// inverse DFT by column
-//void dft_inv_col(carray2d* carr);
-
 // remove data based on distance from the corner
-//void round(carray2d* carr);
+void round(carray2d* carr, double round_factor) {
+  complex* arr = carr->arr;
+
+  double max = round_factor * (double)(carr->x); // temp
+  double max_dist_squared = maxD * maxD;
+
+  for (int y = 0; y < carr->y; y++) {
+    double min_y = (double)(y < carr->y - 1 - y ? y : carr->y - 1 -y);
+
+    for (int x = 0; x < carr->x; x++) {
+      double min_x = (double)(x < carr->x - 1 - x ? x : carr->x - 1 - x);
+
+      double sum_of_squares = min_y * min_y + min_x * min_x;
+
+      if (sum_of_squares <= max_dist_squared) {
+        int y2 = carr->y - 1 - y;
+        int x2 = carr->x - 1 - x;
+
+        complex czero;
+        czero.real = 0.0;
+        czero.imaginary = 0.0;
+
+        arr[y * carr->x + x] = czero;
+        arr[y * carr->x + x2] = czero;
+        arr[y2 * carr->x + x] = czero;
+        arr[y2 * carr->x + x2] = czero;
+      }
+      else {
+        break; // move to next row
+      }
+    }
+  }
+}
 
 // round absolute value of a complex back to int
-//void normalize(carray2d* carr);
+void normalize(carray2d* carr) {
+
+}
 
 
 
@@ -178,28 +232,31 @@ complex* fft_recursive(complex* arr, int* indices, int indices_len, bool inv) {
   }
 
   // split into even and odd
-  int NUM_GROUPS = 2; // temporary
-  int groupsize = indices_len / NUM_GROUPS;
-  int** index_groups = (int**)malloc(NUM_GROUPS * sizeof(int*));
-  for (int i = 0; i < NUM_GROUPS; i++) {
+  int num_groups = 2; // temporary
+  while (incides_len % num_groups != 0) {
+    num_groups++;
+  }
+  int groupsize = indices_len / num_groups;
+  int** index_groups = (int**)malloc(num_groups * sizeof(int*));
+  for (int i = 0; i < num_groups; i++) {
     index_groups[i] = (int*)malloc(groupsize * sizeof(int));
     for (int j = 0; j < groupsize; j++) {
-      int idx = j * NUM_GROUPS + i;
+      int idx = j * num_groups + i;
       index_groups[i][j] = indices[idx];
     }
   }
 
   // recurse
-  complex** rec_results = (complex**)malloc(NUM_GROUPS * sizeof(complex*));
-  for (int i = 0; i < NUM_GROUPS; i++) {
+  complex** rec_results = (complex**)malloc(num_groups * sizeof(complex*));
+  for (int i = 0; i < num_groups; i++) {
     rec_results[i] = fft_recursive(arr, index_groups[i], inv);
   }
 
   // combine
-  result = combine(rec_results, NUM_GROUPS, groupsize, inv);
+  result = combine(rec_results, num_groups, groupsize, inv);
 
   // cleanup
-  for (int i = 0; i < NUM_GROUPS; i++) {
+  for (int i = 0; i < num_groups; i++) {
     free(index_groups[i]);
     free(rec_results[i]);
   }
