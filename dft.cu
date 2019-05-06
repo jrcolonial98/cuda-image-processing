@@ -57,7 +57,7 @@ void blur(image* img) {
   carr[2] = carr_blue;
 
   // create gaussian kernel
-  complex* kernel = get_gaussian_kernel(img->height, img->width, 2, 2);
+  complex* kernel = get_gaussian_kernel(img->height, img->width, 2.0, 2.0);
 
   // FFT on kernel
   carray2d karr;
@@ -123,7 +123,7 @@ void blur(image* img) {
     for (int y = 0; y < img->height; y++) {
       for (int x = 0; x < img->width; x++) {
         int idx = y * img->width + x;
-        (arr + i)[idx] = complex_mult(kernel + idx, (arr + i) + idx);
+        arr[i][idx] = complex_mult(kernel + idx, (arr[i]) + idx);
       }
     }
 
@@ -302,7 +302,7 @@ complex* get_gaussian_kernel(int rows, int cols, double sigmax, double sigmay) {
   int cols_pow_2 = 1;
   while (cols_pow_2 < cols) cols_pow_2 *= 2;
 
-  complex* kernel = (complex*)malloc(rows_pow_2 * cols_pow_2 * xizeof(complex));
+  complex* kernel = (complex*)malloc(rows_pow_2 * cols_pow_2 * sizeof(complex));
   complex zero;
   zero.real = 0.0;
   zero.imaginary = 0.0;

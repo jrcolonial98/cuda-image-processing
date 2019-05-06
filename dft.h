@@ -26,7 +26,7 @@ void round(carray2d* carr, double round_factor);
 void normalize(carray2d* carr);
 
 // create gaussian kernel for blurring
-complex* get_gaussian_kernel(int rows, int cols, double sigmax, double sigmay) {;
+complex* get_gaussian_kernel(int rows, int cols, double sigmax, double sigmay);
 
 
 
