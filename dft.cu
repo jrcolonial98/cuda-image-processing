@@ -57,7 +57,7 @@ void blur(image* img) {
   carr[2] = carr_blue;
 
   // create gaussian kernel
-  complex* kernel = get_gaussian_kernel(img->height, img->width, 0.2, 0.2);
+  complex* kernel = get_gaussian_kernel(img->height, img->width, 2, 2);
 
   // FFT on kernel
   carray2d karr;
