@@ -12,6 +12,7 @@ void blur(image* img) {
   while (width_pow_2 < img->width) width_pow_2 *= 2;
   int height_pow_2 = 1;
   while (height_pow_2 < img->height) height_pow_2 *= 2;
+  printf("Allocating array of %d by %d\n", width_pow_2, height_pow_2);
   complex zero;
   zero.real = 0.0;
   zero.imaginary = 0.0;
@@ -123,7 +124,7 @@ void blur(image* img) {
     for (int y = 0; y < img->height; y++) {
       for (int x = 0; x < img->width; x++) {
         int idx = y * width_pow_2 + x;
-//        arr[i][idx] = complex_mult(kernel + idx, (arr[i]) + idx);
+        arr[i][idx] = complex_mult(kernel + idx, (arr[i]) + idx);
       }
     }
 
@@ -297,45 +298,47 @@ void normalize(carray2d* carr) {
 }
 
 // create gaussian kernel for blurring
-complex* get_gaussian_kernel(int rows, int cols, double sigmax, double sigmay) {
-  int rows_pow_2 = 1;
-  while (rows_pow_2 < rows) rows_pow_2 *= 2;
-  int cols_pow_2 = 1;
-  while (cols_pow_2 < cols) cols_pow_2 *= 2;
+complex* get_gaussian_kernel(int height, int width, double sigmax, double sigmay) {
+  int height_pow_2 = 1;
+  while (height_pow_2 < height) height_pow_2 *= 2;
+  int width_pow_2 = 1;
+  while (width_pow_2 < width) width_pow_2 *= 2;
 
-  complex* kernel = (complex*)malloc(rows_pow_2 * cols_pow_2 * sizeof(complex));
+  printf("Generating Gaussian kernel of %d by %d\n", width_pow_2, height_pow_2);
+
+  complex* kernel = (complex*)malloc(height_pow_2 * width_pow_2 * sizeof(complex));
   complex zero;
   zero.real = 0.0;
   zero.imaginary = 0.0;
-  for (int j = 0; j < rows_pow_2; j++) {
-    for (int i = 0; i < cols_pow_2; i++) {
-      kernel[j * cols_pow_2 + i] = zero;
+  for (int y = 0; y < height_pow_2; y++) {
+    for (int x = 0; x < width_pow_2; x++) {
+      kernel[y * width_pow_2 + x] = zero;
     }
   }
 
-  double meanj = rows/2;
-  double meani = cols/2;
+  double meany = height/2;
+  double meanx = width/2;
   double sum = 0.0;
   double temp = 0.0;
 
   int sigma = 2 * sigmay * sigmax;
 
-  for (int j = 0; j < rows; j++) {
-    for (int i = 0; i < cols; i++) {
-      //temp = exp( -((j-meanj)*(j-meanj) + (i-meani)*(i-meani))  / (sigma));
-      temp = exp( -0.5 * (pow((j-meanj)/sigma, 2.0) + pow((i-meani)/sigma,2.0)) ) / (2 * M_PI * sigma * sigma);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      //temp = exp( -((y-meany)*(y-meany) + (x-meanx)*(x-meanx))  / (sigma));
+      temp = exp( -0.5 * (pow((y-meany)/sigma, 2.0) + pow((x-meanx)/sigma,2.0)) ) / (2 * M_PI * sigma * sigma);
       complex c;
       c.real = temp;
       c.imaginary = 0.0;
-      kernel[j * cols_pow_2 + i] = c;
+      kernel[y * width_pow_2 + x] = c;
       sum += temp;
     }
   }
 
   double scale = 1.0 / sum;
-  for (int j = 0; j < rows; j++) {
-    for (int i = 0; i < cols; i++) {
-      kernel[j * cols_pow_2 + i] = complex_scale(kernel + (j * cols_pow_2 + i), scale);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      kernel[y * width_pow_2 + x] = complex_scale(kernel + (y * width_pow_2 + x), scale);
     }
   }
 
