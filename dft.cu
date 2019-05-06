@@ -138,40 +138,86 @@ void blur(image* img) {
 void dft_row(carray2d* carr, bool inv) {
   complex* arr = carr->arr;
 
-  for (int i = 0; i < carr->y; i++) { // for every row
+  // generate padded array
+  int least_pow_2 = 1;
+  while (least_pow_2 < carr->x) {
+    least_pow_2 *= 2;
+  }
+  complex zero;
+  zero.real = 0.0;
+  zero.imaginary = 0.0;
+  complex* padded_row = (complex*)malloc(least_pow_2 * sizeof(complex));
+
+  // for every row
+  for (int i = 0; i < carr->y; i++) {
     int row_offset = carr->x * i;
     complex* row = arr + row_offset;
 
-    carray1d crow;
-    crow.arr = row;
-    crow.x = carr->x;
+    // copy into padded array
+    for (int j = 0; j < least_pow_2; j++) {
+      if (j < carr->x) {
+        padded_row[j] = row[j];
+      }
+      else {
+        padded_row[j] = zero;
+      }
+    }
 
+    // perform FFT
+    carray1d crow;
+    crow.arr = padded_row;
+    crow.x = least_pow_2;
     fft(&crow, inv);
+
+    // copy back from padded array
+    for (int j = 0; j < carr->x; j++) {
+      row[j] = padded_row[j];
+    }
   }
+
+  free(padded_row);
 }
 
 // DFT by column
 void dft_col(carray2d* carr, bool inv) {
   complex* arr = carr->arr;
 
-  for (int i = 0; i < carr->x; i++) { // for every column
-    complex* column = (complex*)malloc(carr->x * sizeof(complex));
-    for (int j = 0; j < carr->y; j++) { // copy into new array
-      column[j] = arr[j * carr->x + i];
+  // generate padded array
+  int least_pow_2 = 1;
+  while (least_pow_2 < carr->y) {
+    least_pow_2 *= 2;
+  }
+  complex zero;
+  zero.real = 0.0;
+  zero.imaginary = 0.0;
+  complex* padded_col = (complex*)malloc(least_pow_2 * sizeof(complex));
+
+  // for every column
+  for (int i = 0; i < carr->x; i++) {
+
+    // copy into padded array
+    for (int j = 0; j < least_pow_2; j++) {
+      if (j < carr->y) {
+        padded_col[j] = arr[j * carr->x + i];
+      }
+      else {
+        padded_col[j] = zero;
+      }
     }
 
+    // perform FFT
     carray1d ccol;
-    ccol.arr = column;
-    ccol.x = carr->y;
-
+    ccol.arr = padded_col;
+    ccol.x = least_pow_2;
     fft(&ccol, inv); // transform array
 
-    for (int j = 0; j < carr->y; j++) { // copy back
-      arr[j * carr->x + i] = column[j];
+    // copy back from padded array
+    for (int j = 0; j < carr->y; j++) {
+      arr[j * carr->x + i] = padded_col[j];
     }
-
-    free(column);
   }
+
+  free(padded_col);
 }
 
 // remove data based on distance from the corner
@@ -249,62 +295,45 @@ complex* fft_recursive(complex* arr, int* indices, int indices_len, bool inv) {
     return result;
   }
 
-  // split into groups
-  int num_groups = 2; // temporary
-  while (indices_len % num_groups != 0) {
-    num_groups++;
-  }
-  int groupsize = indices_len / num_groups;
-  int** index_groups = (int**)malloc(num_groups * sizeof(int*));
-  for (int i = 0; i < num_groups; i++) {
-    index_groups[i] = (int*)malloc(groupsize * sizeof(int));
-    for (int j = 0; j < groupsize; j++) {
-      int idx = j * num_groups + i;
-      index_groups[i][j] = indices[idx];
-    }
+  // split into even and odd
+  int groupsize = indices_len / 2;
+  int* even_indices = (int*)malloc(groupsize * sizeof(int));
+  int* odd_indices = (int*)malloc(groupsize * sizeof(int));
+  for (int i = 0; i < indices_len / 2; i++) {
+    even_indices[i] = indices[i * 2];
+    odd_indices[i] = indices[i * 2 + 1];
   }
 
   // recurse
-  complex** rec_results = (complex**)malloc(num_groups * sizeof(complex*));
-  for (int i = 0; i < num_groups; i++) {
-    rec_results[i] = fft_recursive(arr, index_groups[i], groupsize, inv);
-  }
+  complex* even = fft_recursive(arr, even_indices, groupsize, inv);
+  complex* odd = fft_recursive(arr, odd_indices, groupsize, inv);
 
   // combine
-  result = dft_combine(rec_results, num_groups, groupsize, inv);
+  result = dft_combine(even, odd, groupsize, inv);
 
   // cleanup
-  for (int i = 0; i < num_groups; i++) {
-    free(index_groups[i]);
-    free(rec_results[i]);
-  }
-  free(index_groups);
-  free(rec_results);
+  free(even_indices);
+  free(odd_indices);
+  free(even);
+  free(odd);
 
   return result;
 }
-complex* dft_combine(complex** arrs, int num_groups, int groupsize, bool inv) {
-  int N = num_groups * groupsize;
+complex* dft_combine(complex* even, complex* odd, int groupsize, bool inv) {
+  int N = 2 * groupsize;
 
   complex* result = (complex*)malloc(N * sizeof(complex));
 
 
-  for (int k = 0; k < N; k++) {
-    complex total;
-    total.real = 0.0;
-    total.imaginary = 0.0;
+  for (int k = 0; k < groupsize; k++) {
+    complex o = odd[k];
+    complex e = even[k];
 
-    for (int i = 0; i < num_groups; i++) {
-      int idx = i * groupsize + (k % groupsize);
-      complex num = result[idx];
-      complex factor = exp_to_complex(k * i, N, inv);
-      //complex factor = exp_to_complex(idx, N, inv);
-      complex num_times_factor = complex_mult(&factor, &num);
+    complex factor = exp_to_complex(k, N, inv);
+    complex o_factor = complex_mult(&o, &factor);
 
-      total = complex_add(&total, &num_times_factor);
-    }
-
-    result[k] = total;
+    result[k] = complex_add(&e, &o_factor);
+    result[k + groupsize] = complex_sub(&e, &o_factor);
   }
 
   return result;
