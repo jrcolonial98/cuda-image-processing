@@ -57,7 +57,7 @@ void blur(image* img) {
   carr[2] = carr_blue;
 
   // create gaussian kernel
-  complex* kernel = get_gaussian_kernel(img->height, img->width, 2.0, 2.0);
+  complex* kernel = get_gaussian_kernel(img->height, img->width, 1, 1);
 
   // FFT on kernel
   carray2d karr;
@@ -73,7 +73,7 @@ void blur(image* img) {
   for (int color = 0; color < 3; color++) {
     for (int y = 0; y < img->height; y++) {
       int row_data = y * img->bytespercolor * img->width;
-      int row_arr = y * img->width;
+      int row_arr = y * width_pow_2;
 
       for (int x = 0; x < img->width; x++) {
         int col_data = x * img->bytespercolor;
@@ -122,8 +122,8 @@ void blur(image* img) {
     //round(carr + i, 0.0);
     for (int y = 0; y < img->height; y++) {
       for (int x = 0; x < img->width; x++) {
-        int idx = y * img->width + x;
-        arr[i][idx] = complex_mult(kernel + idx, (arr[i]) + idx);
+        int idx = y * width_pow_2 + x;
+//        arr[i][idx] = complex_mult(kernel + idx, (arr[i]) + idx);
       }
     }
 
@@ -140,11 +140,12 @@ void blur(image* img) {
   for (int color = 0; color < 3; color++) {
     for (int y = 0; y < img->height; y++) {
       int row_data = y * img->bytespercolor * img->width;
-      int row_arr = y * img->width;
+      int row_arr = y * width_pow_2;
 
       for (int x = 0; x < img->width; x++) {
         int col_data = x * img->bytespercolor;
         int col_arr = x;
+
         int offset_data = row_data + col_data;
         int offset_arr = row_arr + col_arr;
 
@@ -312,8 +313,8 @@ complex* get_gaussian_kernel(int rows, int cols, double sigmax, double sigmay) {
     }
   }
 
-  double meanj = ((double)rows - 1.0)/2.0;
-  double meani = ((double)cols - 1.0)/2.0;
+  double meanj = rows/2;
+  double meani = cols/2;
   double sum = 0.0;
   double temp = 0.0;
 
@@ -321,11 +322,12 @@ complex* get_gaussian_kernel(int rows, int cols, double sigmax, double sigmay) {
 
   for (int j = 0; j < rows; j++) {
     for (int i = 0; i < cols; i++) {
-      temp = exp( -((j-meanj)*(j-meanj) + (i-meani)*(i-meani))  / (sigma));
+      //temp = exp( -((j-meanj)*(j-meanj) + (i-meani)*(i-meani))  / (sigma));
+      temp = exp( -0.5 * (pow((j-meanj)/sigma, 2.0) + pow((i-meani)/sigma,2.0)) ) / (2 * M_PI * sigma * sigma);
       complex c;
       c.real = temp;
       c.imaginary = 0.0;
-      kernel[j * cols + i] = c;
+      kernel[j * cols_pow_2 + i] = c;
       sum += temp;
     }
   }
@@ -333,7 +335,7 @@ complex* get_gaussian_kernel(int rows, int cols, double sigmax, double sigmay) {
   double scale = 1.0 / sum;
   for (int j = 0; j < rows; j++) {
     for (int i = 0; i < cols; i++) {
-      kernel[j * cols + i] = complex_scale(kernel + (j * cols + i), scale);
+      kernel[j * cols_pow_2 + i] = complex_scale(kernel + (j * cols_pow_2 + i), scale);
     }
   }
 
