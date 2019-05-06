@@ -8,29 +8,48 @@ void blur(image* img) {
   char** data = img->data;
 
   // allocate an array of complex numbers for DFT operations
-  complex* red = (complex*)malloc(img->width * img->height * sizeof(complex));
-  complex* green = (complex*)malloc(img->width * img->height * sizeof(complex));
-  complex* blue = (complex*)malloc(img->width * img->height * sizeof(complex));
+  int width_pow_2 = 1;
+  while (width_pow_2 < img->width) width_pow_2 *= 2;
+  int height_pow_2 = 1;
+  while (height_pow_2 < img->height) height_pow_2 *= 2;
+  complex zero;
+  zero.real = 0.0;
+  zero.imaginary = 0.0;
+
+  complex* red = (complex*)malloc(width_pow_2 * height_pow_2 * sizeof(complex));
+  complex* green = (complex*)malloc(width_pow_2 * height_pow_2 * sizeof(complex));
+  complex* blue = (complex*)malloc(width_pow_2 * height_pow_2 * sizeof(complex));
 
   complex** arr = (complex**)malloc(3 * sizeof(complex*));
   arr[0] = red;
   arr[1] = green;
   arr[2] = blue;
 
+  for (int color = 0; color < 3; color++) {
+    for (int y = 0; y < height_pow_2; y++) {
+      int row_offset = y * width_pow_2;
+      for (int x = 0; x < width_pow_2; x++) {
+        int offset = row_offset + x;
+
+        arr[color][offset] = zero;
+      }
+    }
+  }
+
   carray2d carr_red;
   carr_red.arr = red;
-  carr_red.x = img->width;
-  carr_red.y = img->height;
+  carr_red.x = width_pow_2;
+  carr_red.y = height_pow_2;
 
   carray2d carr_green;
   carr_green.arr = green;
-  carr_green.x = img->width;
-  carr_green.y = img->height;
+  carr_green.x = width_pow_2;
+  carr_green.y = height_pow_2;
 
   carray2d carr_blue;
   carr_blue.arr = blue;
-  carr_blue.x = img->width;
-  carr_blue.y = img->height;
+  carr_blue.x = width_pow_2;
+  carr_blue.y = height_pow_2;
 
   carray2d* carr = (carray2d*)malloc(3 * sizeof(carray2d));
   carr[0] = carr_red;
@@ -87,13 +106,13 @@ void blur(image* img) {
     dft_row(carr + i, false);
 
     printf("blur: DFT by column\n");
-    //dft_col(carr + i, false);
+    dft_col(carr + i, false);
 
     printf("blur: round\n");
-    //round(carr + i, 0.15);
+    round(carr + i, 0.0);
 
     printf("blur: inverse DFT by column\n");
-    //dft_col(carr + i, true);
+    dft_col(carr + i, true);
 
     printf("blur: inverse DFT by row\n");
     dft_row(carr + i, true);
@@ -224,32 +243,31 @@ void dft_col(carray2d* carr, bool inv) {
 void round(carray2d* carr, double round_factor) {
   complex* arr = carr->arr;
 
-  double max = round_factor * (double)(carr->x); // temp
-  double max_dist_squared = max * max;
+  //double max_d = round_factor * (double)(carr->x); // temp
+  //double max = (double)round(max_d);
+  double a = round_factor * (double)(carr->x);
+  double asq = a * a;
+  double b = round_factor * (double)(carr->y);
+  double bsq = b * b;
 
   for (int y = 0; y < carr->y; y++) {
-    double min_y = (double)(y < carr->y - 1 - y ? y : carr->y - 1 -y);
+    int y2 = carr->y - 1 - y;
+    double min_y = (double)(y < y2 ? y : y2);
 
     for (int x = 0; x < carr->x; x++) {
-      double min_x = (double)(x < carr->x - 1 - x ? x : carr->x - 1 - x);
+      int x2 = carr->x - 1 - x;
+      double min_x = (double)(x < x2 ? x : x2);
 
-      double sum_of_squares = min_y * min_y + min_x * min_x;
+      //double sum_of_squares = min_y * min_y + min_x * min_x;
+      //double sqrt_of_sum = sqrt(sum_of_squares);
+      double ellipse = (min_x * min_x / asq) + (min_y * min_y / bsq);
 
-      if (sum_of_squares <= max_dist_squared) {
-        int y2 = carr->y - 1 - y;
-        int x2 = carr->x - 1 - x;
-
+      if (ellipse <= 1.0) {
         complex czero;
         czero.real = 0.0;
         czero.imaginary = 0.0;
 
         arr[y * carr->x + x] = czero;
-        arr[y * carr->x + x2] = czero;
-        arr[y2 * carr->x + x] = czero;
-        arr[y2 * carr->x + x2] = czero;
-      }
-      else {
-        break; // move to next row
       }
     }
   }
@@ -299,7 +317,7 @@ complex* fft_recursive(complex* arr, int* indices, int indices_len, bool inv) {
   int groupsize = indices_len / 2;
   int* even_indices = (int*)malloc(groupsize * sizeof(int));
   int* odd_indices = (int*)malloc(groupsize * sizeof(int));
-  for (int i = 0; i < indices_len / 2; i++) {
+  for (int i = 0; i < groupsize; i++) {
     even_indices[i] = indices[i * 2];
     odd_indices[i] = indices[i * 2 + 1];
   }

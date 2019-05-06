@@ -1,4 +1,3 @@
-#include <math.h>
 #include "complex.h"
 
 double complex_abs(complex *c) {
@@ -19,7 +18,7 @@ complex complex_sub(complex *a, complex *b) {
 complex complex_mult(complex *a, complex *b) {
 	complex prod;
 	prod.real = a->real * b->real - a->imaginary * b->imaginary;
-	prod.imaginary = a->real * b->imaginary - a->imaginary * b->real;
+	prod.imaginary = a->real * b->imaginary + a->imaginary * b->real;
 	return prod;
 }
 complex complex_scale(complex *c, double val) {

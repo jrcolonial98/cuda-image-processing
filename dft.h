@@ -4,7 +4,6 @@
 #include "complex.h"
 #include "bmp.h"
 
-
 // API ENDPOINTS
 
 // "blur" the values of a 2d array

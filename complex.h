@@ -1,6 +1,8 @@
 #ifndef COMPLEX_H
 #define COMPLEX_H
 
+#include <math.h>
+
 typedef struct {
 	double real;
 	double imaginary;
