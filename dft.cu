@@ -298,6 +298,7 @@ complex* dft_combine(complex** arrs, int num_groups, int groupsize, bool inv) {
       int idx = i * groupsize + (k % groupsize);
       complex num = result[idx];
       complex factor = exp_to_complex(k * i, N, inv);
+      //complex factor = exp_to_complex(idx, N, inv);
       complex num_times_factor = complex_mult(&factor, &num);
 
       total = complex_add(&total, &num_times_factor);
