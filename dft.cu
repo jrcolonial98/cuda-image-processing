@@ -58,15 +58,24 @@ void blur(image* img) {
   carr[2] = carr_blue;
 
   // create gaussian kernel
-  complex* kernel = get_gaussian_kernel(img->height, img->width, 1, 1);
+  complex* kernel = get_gaussian_kernel(img->height, img->width, 0.2, 0.2);
 
   // FFT on kernel
   carray2d karr;
   karr.arr = kernel;
   karr.y = height_pow_2;
   karr.x = width_pow_2;
+  printf("kernel: DFT by row\n");
   dft_row(&karr, false);
+  printf("kernel: DFT by column\n");
   dft_col(&karr, false);
+  for (int y = 0; y < height_pow_2; y++) {
+    for (int x = 0; x < width_pow_2; x++) {
+      if (complex_abs(kernel + (y * width_pow_2 + x)) < 0.000001) {
+        kernel[y * width_pow_2 + x].real = 0.000001;
+      }
+    }
+  }
 
   // convert data into complex numbers
   // TODO: move into helper function
@@ -121,10 +130,16 @@ void blur(image* img) {
 
     printf("blur: round\n");
     //round(carr + i, 0.0);
-    for (int y = 0; y < img->height; y++) {
-      for (int x = 0; x < img->width; x++) {
-        int idx = y * width_pow_2 + x;
-        arr[i][idx] = complex_mult(kernel + idx, (arr[i]) + idx);
+    int row_padding = (height_pow_2 - img->height) / 2;
+    int col_padding = (width_pow_2 - img->width) / 2;
+    for (int y = 0; y < height_pow_2; y++) {
+      int row_offset = y * width_pow_2;
+      for (int x = 0; x < width_pow_2; x++) {
+        int offset = row_offset + x;
+        int offset_kernel = offset + (height_pow_2 / 2 * width_pow_2) + width_pow_2 / 2;
+        complex c1 = kernel[offset];
+        complex c2 = arr[i][offset];
+        arr[i][offset] = complex_mult(&c1, &c2);
       }
     }
 
@@ -321,24 +336,32 @@ complex* get_gaussian_kernel(int height, int width, double sigmax, double sigmay
   double sum = 0.0;
   double temp = 0.0;
 
-  int sigma = 2 * sigmay * sigmax;
+  //double sigma = 2.0 * sigmay * sigmax;
+  double sigma = 1;
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      //temp = exp( -((y-meany)*(y-meany) + (x-meanx)*(x-meanx))  / (sigma));
-      temp = exp( -0.5 * (pow((y-meany)/sigma, 2.0) + pow((x-meanx)/sigma,2.0)) ) / (2 * M_PI * sigma * sigma);
+      int row = y - height / 2;
+      if (row < 0) row += height_pow_2;
+      int col = x - width / 2;
+      if (col < 0) col += width_pow_2;
+      int offset = row * width_pow_2 + col;
+
+      //temp = exp( -(double)((y-meany)*(y-meany) + (x-meanx)*(x-meanx))  / (sigma));
+      temp = exp( -0.5 * (pow(((double)x-meanx)/sigma, 2.0) + pow(((double)y-meany)/sigma,2.0)) ) / (2.0 * M_PI * sigma * sigma);
       complex c;
       c.real = temp;
       c.imaginary = 0.0;
-      kernel[y * width_pow_2 + x] = c;
+      kernel[offset] = c;
       sum += temp;
     }
   }
 
   double scale = 1.0 / sum;
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      kernel[y * width_pow_2 + x] = complex_scale(kernel + (y * width_pow_2 + x), scale);
+  for (int y = 0; y < height_pow_2; y++) {
+    for (int x = 0; x < width_pow_2; x++) {
+      int offset = y * width_pow_2 + x;
+      kernel[offset] = complex_scale(kernel + (offset), scale);
     }
   }
 
