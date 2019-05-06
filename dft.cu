@@ -56,6 +56,16 @@ void blur(image* img) {
   carr[1] = carr_green;
   carr[2] = carr_blue;
 
+  // create gaussian kernel
+  complex* kernel = get_gaussian_kernel(img->height, img->width, 0.2, 0.2);
+
+  // FFT on kernel
+  carray2d karr;
+  karr.arr = kernel;
+  karr.y = height_pow_2;
+  karr.x = width_pow_2;
+  dft_row(&karr, false);
+  dft_col(&karr, false);
 
   // convert data into complex numbers
   // TODO: move into helper function
@@ -109,7 +119,13 @@ void blur(image* img) {
     dft_col(carr + i, false);
 
     printf("blur: round\n");
-    round(carr + i, 0.0);
+    //round(carr + i, 0.0);
+    for (int y = 0; y < img->height; y++) {
+      for (int x = 0; x < img->width; x++) {
+        int idx = y * img->width + x;
+        (arr + i)[idx] = complex_mult(kernel + idx, (arr + i) + idx);
+      }
+    }
 
     printf("blur: inverse DFT by column\n");
     dft_col(carr + i, true);
@@ -147,6 +163,7 @@ void blur(image* img) {
   free(green);
   free(blue);
   free(arr);
+  free(kernel);
 }
 
 
@@ -276,6 +293,51 @@ void round(carray2d* carr, double round_factor) {
 // round absolute value of a complex back to int
 void normalize(carray2d* carr) {
 
+}
+
+// create gaussian kernel for blurring
+complex* get_gaussian_kernel(int rows, int cols, double sigmax, double sigmay) {
+  int rows_pow_2 = 1;
+  while (rows_pow_2 < rows) rows_pow_2 *= 2;
+  int cols_pow_2 = 1;
+  while (cols_pow_2 < cols) cols_pow_2 *= 2;
+
+  complex* kernel = (complex*)malloc(rows_pow_2 * cols_pow_2 * xizeof(complex));
+  complex zero;
+  zero.real = 0.0;
+  zero.imaginary = 0.0;
+  for (int j = 0; j < rows_pow_2; j++) {
+    for (int i = 0; i < cols_pow_2; i++) {
+      kernel[j * cols_pow_2 + i] = zero;
+    }
+  }
+
+  double meanj = ((double)rows - 1.0)/2.0;
+  double meani = ((double)cols - 1.0)/2.0;
+  double sum = 0.0;
+  double temp = 0.0;
+
+  int sigma = 2 * sigmay * sigmax;
+
+  for (int j = 0; j < rows; j++) {
+    for (int i = 0; i < cols; i++) {
+      temp = exp( -((j-meanj)*(j-meanj) + (i-meani)*(i-meani))  / (sigma));
+      complex c;
+      c.real = temp;
+      c.imaginary = 0.0;
+      kernel[j * cols + i] = c;
+      sum += temp;
+    }
+  }
+
+  double scale = 1.0 / sum;
+  for (int j = 0; j < rows; j++) {
+    for (int i = 0; i < cols; i++) {
+      kernel[j * cols + i] = complex_scale(kernel + (j * cols + i), scale);
+    }
+  }
+
+  return kernel;
 }
 
 

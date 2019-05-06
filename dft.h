@@ -25,6 +25,10 @@ void round(carray2d* carr, double round_factor);
 // round absolute value of a complex back to int
 void normalize(carray2d* carr);
 
+// create gaussian kernel for blurring
+complex* get_gaussian_kernel(int rows, int cols, double sigmax, double sigmay) {;
+
+
 
 
 // DFT HELPERS
