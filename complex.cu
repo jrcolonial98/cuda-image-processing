@@ -4,25 +4,25 @@
 double complex_abs(complex *c) {
 	return sqrt(c->real * c->real + c->imaginary * c->imaginary);
 }
-complex add(complex *a, complex *b) {
+complex complex_add(complex *a, complex *b) {
 	complex sum;
 	sum.real = a->real + b->real;
 	sum.imaginary = a->imaginary + b-> imaginary;
 	return sum;
 }
-complex sub(complex *a, complex *b) {
+complex complex_sub(complex *a, complex *b) {
 	complex diff;
 	diff.real = a->real - b->real;
 	diff.imaginary = a->imaginary - b->imaginary;
 	return diff;
 }
-complex mult(complex *a, complex *b) {
+complex complex_mult(complex *a, complex *b) {
 	complex prod;
 	prod.real = a->real * b->real - a->imaginary * b->imaginary;
 	prod.imaginary = a->real * b->imaginary - a->imaginary * b->real;
 	return prod;
 }
-complex scale(complex *c, double val) {
+complex complex_scale(complex *c, double val) {
 	complex scaled;
 	scaled.real = c->real * val;
 	scaled.imaginary = c->imaginary * val;

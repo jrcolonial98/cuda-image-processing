@@ -276,7 +276,7 @@ void combine_rgb_cpu(bmp* bmpdata, image* img) {
         int offset_old = row_old + col_old;
 
         for (int i = 0; i < bytespercolor; i++) {
-          combined_data[offset_new + i] = data[(color+2)%3][offset_old + i];
+          combined_data[offset_new + i] = data[(color+0)%3][offset_old + i];
         }
       }
     }

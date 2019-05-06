@@ -16,8 +16,11 @@ int main(int argc, char *argv[]) {
   image img;
   extract_rgb_cpu(&bitmap, &img);
 
+  printf("Blurring image...\n\n");
+  blur(&img);
+
   // write to file
   printf("Writing data to file: %s\n\n", out_file_name);
-	combine_rgb_cpu(&bitmap, &img);
+  combine_rgb_cpu(&bitmap, &img);
   bmp_to_file(&bitmap, out_file_name);
 }

@@ -2,7 +2,7 @@
 #define DFT_H
 
 #include "complex.h"
-
+#include "bmp.h"
 
 
 // API ENDPOINTS
@@ -15,16 +15,10 @@ void blur(image* image);
 // BLUR HELPERS
 
 // DFT by row
-void dft_row(carray2d* carr);
+void dft_row(carray2d* carr, bool inv);
 
 // DFT by column
-void dft_col(carray2d* carr);
-
-// inverse DFT by row
-void dft_inv_row(carray2d* carr);
-
-// inverse DFT by column
-void dft_inv_col(carray2d* carr);
+void dft_col(carray2d* carr, bool inv);
 
 // remove data based on distance from the corner
 void round(carray2d* carr, double round_factor);
@@ -35,7 +29,7 @@ void normalize(carray2d* carr);
 
 
 // DFT HELPERS
-void fft(carray1d carr, bool inv);
+void fft(carray1d* carr, bool inv);
 complex* fft_recursive(complex* arr, int* indices, int indices_len, bool inv);
 complex* dft_combine(complex** arrs, int num_groups, int groupsize, bool inv);
 
