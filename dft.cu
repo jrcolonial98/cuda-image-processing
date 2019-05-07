@@ -58,8 +58,8 @@ void blur(image* img) {
   carr[2] = carr_blue;
 
   // create gaussian kernel
-  //complex* kernel = get_gaussian_kernel(img->height, img->width, 0.2, 0.2);
-  complex* kernel = get_gaussian_kernel(25, 25, height_pow_2, width_pow_2, 0.2, 0.2);
+  double sigma = 10;
+  complex* kernel = get_gaussian_kernel(25, 25, height_pow_2, width_pow_2, sigma);
 
   // FFT on kernel
   carray2d karr;
@@ -76,24 +76,18 @@ void blur(image* img) {
   printf("blur: Converting RGB data into complex numbers\n");
   for (int color = 0; color < 3; color++) {
     for (int y = 0; y < img->height; y++) {
-      int row_data = y * img->bytespercolor * img->width;
+      int row_data = y * img->width;
       int row_arr = y * width_pow_2;
 
       for (int x = 0; x < img->width; x++) {
-        int col_data = x * img->bytespercolor;
+        int col_data = x;
         int col_arr = x;
         int offset_data = row_data + col_data;
         int offset_arr = row_arr + col_arr;
 
-        unsigned int value = 0;
-        for (int i = 0; i < img->bytespercolor; i++) {
-          value *= 256;
-          value += (unsigned int)(data[color][offset_data + i]);
-        }
+        unsigned int value = (unsigned int)(data[color][offset_data + i]);
         double dvalue = (double)value;
-        for (int i = 0; i < img->bytespercolor; i++) {
-          dvalue /= 256.0;
-        }
+        dvalue /= 256.0;
 
         complex cvalue;
         cvalue.real = dvalue;
@@ -122,8 +116,7 @@ void blur(image* img) {
     printf("blur: DFT by column\n");
     dft_col(carr + i, false);
 
-    printf("blur: round\n");
-    //round(carr + i, 0.15);
+    printf("blur: apply filter\n");
     for (int y = 0; y < height_pow_2; y++) {
       int row_offset = y * width_pow_2;
       for (int x = 0; x < width_pow_2; x++) {
@@ -146,23 +139,21 @@ void blur(image* img) {
   printf("blur: converting complex numbers to RGB\n");
   for (int color = 0; color < 3; color++) {
     for (int y = 0; y < img->height; y++) {
-      int row_data = y * img->bytespercolor * img->width;
+      int row_data = y * img->width;
       int row_arr = y * width_pow_2;
 
       for (int x = 0; x < img->width; x++) {
-        int col_data = x * img->bytespercolor;
+        int col_data = x;
         int col_arr = x;
 
         int offset_data = row_data + col_data;
         int offset_arr = row_arr + col_arr;
 
-        // the following code assumes bytespercolor is equal to 1 (todo?)
         complex cvalue = arr[color][offset_arr];
         double abs_val = complex_abs(&cvalue);
-        if (abs_val > 1.0) abs_val = 0.999;;
         unsigned int int_val = (unsigned int)(abs_val * 256);
-        //unsigned int int_val = (unsigned int)abs_val;
         unsigned char next_char = (unsigned char)(int_val);
+
         data[color][offset_data] = next_char;
       }
     }
@@ -174,6 +165,10 @@ void blur(image* img) {
   free(blue);
   free(arr);
   free(kernel);
+  free(red_s);
+  free(green_s);
+  free(blue_s);
+  free(colors_s);
 }
 
 
@@ -266,50 +261,11 @@ void dft_col(carray2d* carr, bool inv) {
   free(padded_col);
 }
 
-// remove data based on distance from the corner
-void round(carray2d* carr, double round_factor) {
-  complex* arr = carr->arr;
-
-  double max_d = round_factor * (double)(carr->x); // temp
-  double max = (double)round(max_d);
-  //double a = round_factor * (double)(carr->x);
-  //double asq = a * a;
-  //double b = round_factor * (double)(carr->y);
-  //double bsq = b * b;
-
-  for (int y = 0; y < carr->y; y++) {
-    int y2 = carr->y - 1 - y;
-    double min_y = (double)(y < y2 ? y : y2);
-
-    for (int x = 0; x < carr->x; x++) {
-      int x2 = carr->x - 1 - x;
-      double min_x = (double)(x < x2 ? x : x2);
-
-      double sum_of_squares = min_y * min_y + min_x * min_x;
-      double sqrt_of_sum = sqrt(sum_of_squares);
-      //double ellipse = (min_x * min_x / asq) + (min_y * min_y / bsq);
-
-      if (sqrt_of_sum <= max) {
-      //if (ellipse <= 1.0) {
-        complex czero;
-        czero.real = 0.0;
-        czero.imaginary = 0.0;
-
-        arr[y * carr->x + x] = czero;
-      }
-    }
-  }
-}
-
-// round absolute value of a complex back to int
-void normalize(carray2d* carr) {
-
-}
-
 // create gaussian kernel for blurring
-complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_pow_2, double sigmax, double sigmay) {
+complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_pow_2, double sigma) {
   printf("Generating Gaussian kernel of %d by %d\n", width_pow_2, height_pow_2);
 
+  // initialize to zero
   complex* kernel = (complex*)malloc(height_pow_2 * width_pow_2 * sizeof(complex));
   complex zero;
   zero.real = 0.0;
@@ -325,9 +281,6 @@ complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_
   double sum = 0.0;
   double temp = 0.0;
 
-  //double sigma = 2.0 * sigmay * sigmax;
-  double sigma = 10;
-
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       int row = y - height / 2;
@@ -336,10 +289,8 @@ complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_
       if (col < 0) col += width_pow_2;
       int offset = row * width_pow_2 + col;
 
-      //temp = exp( -(((double)y-meany)*((double)y-meany) + ((double)x-meanx)*((double)x-meanx))  / (sigma));
       temp = exp( -0.5 * (pow((x-meanx)/sigma, 2.0) + pow((y-meany)/sigma,2.0)) )
                          / (2 * M_PI * sigma * sigma);
-      
       complex c;
       c.real = temp;
       c.imaginary = 0.0;
@@ -347,34 +298,8 @@ complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_
       sum += temp;
     }
   }
-/*
-  kernel[0].real = 0.16;
-  kernel[1].real = 0.08;
-  kernel[2].real = 0.04;
-  kernel[width_pow_2 - 2].real = 0.04;
-  kernel[width_pow_2 - 1].real = 0.08;
-  kernel[width_pow_2].real = 0.08;
-  kernel[width_pow_2+1].real = 0.04;
-  kernel[width_pow_2+2].real = 0.02;
-  kernel[2*width_pow_2-2].real = 0.02;
-  kernel[2*width_pow_2-1].real = 0.04;
-  kernel[2*width_pow_2].real = 0.04;
-kernel[2*width_pow_2+1].real = 0.02;
-kernel[width_pow_2*2+2].real = 0.01;
-kernel[3*width_pow_2-2].real = 0.01;
-kernel[3*width_pow_2-1].real = 0.02;
-kernel[(height_pow_2-2)*width_pow_2].real = 0.04;
-kernel[(height_pow_2-2)*width_pow_2+1].real = 0.02;
-kernel[(height_pow_2-2)*width_pow_2+2].real = 0.01;
-kernel[(height_pow_2-1)*width_pow_2-2].real = 0.01;
-kernel[(height_pow_2-1)*width_pow_2-1].real = 0.02;
-kernel[(height_pow_2-1)*width_pow_2].real = 0.08;
-kernel[(height_pow_2-1)*width_pow_2+1].real = 0.04;
-kernel[(height_pow_2-1)*width_pow_2+1].real = 0.02;
-kernel[(height_pow_2)*width_pow_2-2].real = 0.02;
-kernel[(height_pow_2)*width_pow_2-1].real = 0.04;
-return kernel;
-*/
+
+  // scale result so all elements add up to 1
   double scale = 1.0 / sum;
   for (int y = 0; y < height_pow_2; y++) {
     for (int x = 0; x < width_pow_2; x++) {
@@ -449,7 +374,6 @@ complex* dft_combine(complex* even, complex* odd, int groupsize, bool inv) {
   int N = 2 * groupsize;
 
   complex* result = (complex*)malloc(N * sizeof(complex));
-
 
   for (int k = 0; k < groupsize; k++) {
     complex o = odd[k];

@@ -42,6 +42,15 @@ void init_bmp(bmp* data, char* file_name) {
     return;
   }
   format_bmp_data(bdata);
+  if (bdata->bitsperpixel != 24) {
+    // error - cleanup
+    fclose(file);
+    free(file);
+    free(data);
+    data = NULL;
+    printf("image unsupported: bits per pixel is not 24\n");
+    return;
+  }
   print_bmp_data(bdata);
 
   // read the data of the image
@@ -207,17 +216,15 @@ int convert_le_4(int data) {
 void extract_rgb_cpu(bmp* bmpdata, image* img) {
   unsigned char* data = bmpdata->data;
   bmp_header* bdata = &(bmpdata->bmpheader);
-  int bytespercolor = bdata->bitsperpixel / 24; // generally equals 1
-  int bytesperrow_new = bytespercolor * bdata->width;
-  int bytesperrow_old = bytesperrow_new * 3;
+  int bytesperrow_new = bdata->width;
+  int bytesperrow_old = bdata->width * 3;
   while (bytesperrow_old % 4 != 0) { // BMP format requires row length % 4 == 0
     bytesperrow_old++;
   }
-  int bytesperpixel = bytespercolor * 3; // generall equals 3
 
-  unsigned char* red = (unsigned char*)malloc(bdata->width * bdata->height * bytespercolor);
-  unsigned char* green = (unsigned char*)malloc(bdata->width * bdata->height * bytespercolor);
-  unsigned char* blue = (unsigned char*)malloc(bdata->width * bdata->height * bytespercolor);
+  unsigned char* red = (unsigned char*)malloc(bdata->width * bdata->height);
+  unsigned char* green = (unsigned char*)malloc(bdata->width * bdata->height);
+  unsigned char* blue = (unsigned char*)malloc(bdata->width * bdata->height);
 
   unsigned char** converted_data = (unsigned char**)malloc(3 * sizeof(unsigned char*));
   converted_data[0] = red;
@@ -225,21 +232,17 @@ void extract_rgb_cpu(bmp* bmpdata, image* img) {
   converted_data[2] = blue;
 
   for (int color = 0; color < 3; color++) {
-    int color_old = color * bytespercolor;
-
     for (int y = 0; y < bdata->height; y++) {
       int row_old = y * bytesperrow_old;
       int row_new = y * bytesperrow_new;
 
       for (int x = 0; x < bdata->width; x++) {
-        int col_old = x * bytesperpixel;
-        int col_new = x * bytespercolor;
-        int offset_old = row_old + col_old + color_old;
+        int col_old = x * 3;
+        int col_new = x;
+        int offset_old = row_old + col_old + color;
         int offset_new = row_new + col_new;
 
-        for (int i = 0; i < bytespercolor; i++) {
-          converted_data[color][offset_new + i] = data[offset_old + i];
-        }
+        converted_data[color][offset_new] = data[offset_old + i];
       }
     }
   }
@@ -247,37 +250,30 @@ void extract_rgb_cpu(bmp* bmpdata, image* img) {
   img->data = converted_data;
   img->width = bdata->width;
   img->height = bdata->height;
-  img->bytespercolor = bytespercolor;
 }
 
 void combine_rgb_cpu(bmp* bmpdata, image* img) {
   unsigned char** data = img->data;
   unsigned char* combined_data = bmpdata->data;
   bmp_header* bdata = &(bmpdata->bmpheader);
-  int bytespercolor = bdata->bitsperpixel / 24; // generally equals 1
-  int bytesperrow_old = bytespercolor * bdata->width;
-  int bytesperrow_new = bytesperrow_old * 3;
+  int bytesperrow_old = bdata->width;
+  int bytesperrow_new = bdata->width * 3;
   while (bytesperrow_new % 4 != 0) { // BMP format requires row length % 4 == 0
     bytesperrow_new++;
   }
-  int bytesperpixel = bytespercolor * 3; // generally equals 3
 
   for (int color = 0; color < 3; color++) {
-    int color_new = color * bytespercolor;
-
     for (int y = 0; y < bdata->height; y++) {
       int row_new = y * bytesperrow_new;
       int row_old = y * bytesperrow_old;
 
       for (int x = 0; x < bdata->width; x++) {
-        int col_new = x * bytesperpixel;
-        int col_old = x * bytespercolor;
-        int offset_new = row_new + col_new + color_new;
+        int col_new = x * 3;
+        int col_old = x;
+        int offset_new = row_new + col_new + color;
         int offset_old = row_old + col_old;
 
-        for (int i = 0; i < bytespercolor; i++) {
-          combined_data[offset_new + i] = data[(color+0)%3][offset_old + i];
-        }
+        combined_data[offset_new] = data[(color+0)%3][offset_old];
       }
     }
   }

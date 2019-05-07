@@ -19,14 +19,8 @@ void dft_row(carray2d* carr, bool inv);
 // DFT by column
 void dft_col(carray2d* carr, bool inv);
 
-// remove data based on distance from the corner
-void round(carray2d* carr, double round_factor);
-
-// round absolute value of a complex back to int
-void normalize(carray2d* carr);
-
 // create gaussian kernel for blurring
-complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_pow_2, double sigmax, double sigmay);
+complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_pow_2, double sigma);
 
 
 

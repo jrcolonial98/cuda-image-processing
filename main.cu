@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
   image img;
   extract_rgb_cpu(&bitmap, &img);
 
-  printf("Blurring image...\n\n");
+  printf("Blurring image (SERIAL)...\n\n");
   blur(&img);
 
   // write to file

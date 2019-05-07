@@ -36,7 +36,6 @@ typedef struct {
 typedef struct {
   int width;
   int height;
-  int bytespercolor;
 
   unsigned char** data;
 }  image;
