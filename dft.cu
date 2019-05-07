@@ -5,7 +5,7 @@
 
 // "blur" the values of a 2d array
 void blur(image* img) {
-  char** data = img->data;
+  unsigned char** data = img->data;
 
   // allocate an array of complex numbers for DFT operations
   int width_pow_2 = 1;
@@ -59,7 +59,7 @@ void blur(image* img) {
 
   // create gaussian kernel
   //complex* kernel = get_gaussian_kernel(img->height, img->width, 0.2, 0.2);
-  complex* kernel = get_gaussian_kernel(img->height, img->width, height_pow_2, width_pow_2, 0.2, 0.2);
+  complex* kernel = get_gaussian_kernel(25, 25, height_pow_2, width_pow_2, 0.2, 0.2);
 
   // FFT on kernel
   carray2d karr;
@@ -70,13 +70,6 @@ void blur(image* img) {
   dft_row(&karr, false);
   printf("kernel: DFT by column\n");
   dft_col(&karr, false);
-  for (int y = 0; y < height_pow_2; y++) {
-    for (int x = 0; x < width_pow_2; x++) {
-      if (complex_abs(kernel + (y * width_pow_2 + x)) < 0.000001) {
-        //kernel[y * width_pow_2 + x].real = 0.000001;
-      }
-    }
-  }
 
   // convert data into complex numbers
   // TODO: move into helper function
@@ -104,7 +97,7 @@ void blur(image* img) {
 
         complex cvalue;
         cvalue.real = dvalue;
-        cvalue.imaginary = 0.0;
+        cvalue.imaginary = 0;
 
         arr[color][offset_arr] = cvalue;
       }
@@ -130,7 +123,7 @@ void blur(image* img) {
     dft_col(carr + i, false);
 
     printf("blur: round\n");
-//    round(carr + i, 0.15);
+    //round(carr + i, 0.15);
     for (int y = 0; y < height_pow_2; y++) {
       int row_offset = y * width_pow_2;
       for (int x = 0; x < width_pow_2; x++) {
@@ -166,8 +159,10 @@ void blur(image* img) {
         // the following code assumes bytespercolor is equal to 1 (todo?)
         complex cvalue = arr[color][offset_arr];
         double abs_val = complex_abs(&cvalue);
-        unsigned int int_val = (unsigned int)(abs_val * 256.0);
-        char next_char = (char)(int_val);
+        if (abs_val > 1.0) abs_val = 0.999;;
+        unsigned int int_val = (unsigned int)(abs_val * 256);
+        //unsigned int int_val = (unsigned int)abs_val;
+        unsigned char next_char = (unsigned char)(int_val);
         data[color][offset_data] = next_char;
       }
     }
@@ -275,12 +270,12 @@ void dft_col(carray2d* carr, bool inv) {
 void round(carray2d* carr, double round_factor) {
   complex* arr = carr->arr;
 
-  //double max_d = round_factor * (double)(carr->x); // temp
-  //double max = (double)round(max_d);
-  double a = round_factor * (double)(carr->x);
-  double asq = a * a;
-  double b = round_factor * (double)(carr->y);
-  double bsq = b * b;
+  double max_d = round_factor * (double)(carr->x); // temp
+  double max = (double)round(max_d);
+  //double a = round_factor * (double)(carr->x);
+  //double asq = a * a;
+  //double b = round_factor * (double)(carr->y);
+  //double bsq = b * b;
 
   for (int y = 0; y < carr->y; y++) {
     int y2 = carr->y - 1 - y;
@@ -290,11 +285,12 @@ void round(carray2d* carr, double round_factor) {
       int x2 = carr->x - 1 - x;
       double min_x = (double)(x < x2 ? x : x2);
 
-      //double sum_of_squares = min_y * min_y + min_x * min_x;
-      //double sqrt_of_sum = sqrt(sum_of_squares);
-      double ellipse = (min_x * min_x / asq) + (min_y * min_y / bsq);
+      double sum_of_squares = min_y * min_y + min_x * min_x;
+      double sqrt_of_sum = sqrt(sum_of_squares);
+      //double ellipse = (min_x * min_x / asq) + (min_y * min_y / bsq);
 
-      if (ellipse <= 1.0) {
+      if (sqrt_of_sum <= max) {
+      //if (ellipse <= 1.0) {
         complex czero;
         czero.real = 0.0;
         czero.imaginary = 0.0;
@@ -330,7 +326,7 @@ complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_
   double temp = 0.0;
 
   //double sigma = 2.0 * sigmay * sigmax;
-  double sigma = 1;
+  double sigma = 10;
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
@@ -340,8 +336,9 @@ complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_
       if (col < 0) col += width_pow_2;
       int offset = row * width_pow_2 + col;
 
-      //temp = exp( -((y-meany)*(y-meany) + (x-meanx)*(x-meanx))  / (sigma));
-      temp = exp( -0.5 * (pow(((double)x-meanx)/sigma, 2.0) + pow(((double)y-meany)/sigma,2.0)) ) / (2.0 * M_PI * sigma * sigma);
+      //temp = exp( -(((double)y-meany)*((double)y-meany) + ((double)x-meanx)*((double)x-meanx))  / (sigma));
+      temp = exp( -0.5 * (pow((x-meanx)/sigma, 2.0) + pow((y-meany)/sigma,2.0)) )
+                         / (2 * M_PI * sigma * sigma);
       
       complex c;
       c.real = temp;
@@ -350,7 +347,34 @@ complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_
       sum += temp;
     }
   }
-
+/*
+  kernel[0].real = 0.16;
+  kernel[1].real = 0.08;
+  kernel[2].real = 0.04;
+  kernel[width_pow_2 - 2].real = 0.04;
+  kernel[width_pow_2 - 1].real = 0.08;
+  kernel[width_pow_2].real = 0.08;
+  kernel[width_pow_2+1].real = 0.04;
+  kernel[width_pow_2+2].real = 0.02;
+  kernel[2*width_pow_2-2].real = 0.02;
+  kernel[2*width_pow_2-1].real = 0.04;
+  kernel[2*width_pow_2].real = 0.04;
+kernel[2*width_pow_2+1].real = 0.02;
+kernel[width_pow_2*2+2].real = 0.01;
+kernel[3*width_pow_2-2].real = 0.01;
+kernel[3*width_pow_2-1].real = 0.02;
+kernel[(height_pow_2-2)*width_pow_2].real = 0.04;
+kernel[(height_pow_2-2)*width_pow_2+1].real = 0.02;
+kernel[(height_pow_2-2)*width_pow_2+2].real = 0.01;
+kernel[(height_pow_2-1)*width_pow_2-2].real = 0.01;
+kernel[(height_pow_2-1)*width_pow_2-1].real = 0.02;
+kernel[(height_pow_2-1)*width_pow_2].real = 0.08;
+kernel[(height_pow_2-1)*width_pow_2+1].real = 0.04;
+kernel[(height_pow_2-1)*width_pow_2+1].real = 0.02;
+kernel[(height_pow_2)*width_pow_2-2].real = 0.02;
+kernel[(height_pow_2)*width_pow_2-1].real = 0.04;
+return kernel;
+*/
   double scale = 1.0 / sum;
   for (int y = 0; y < height_pow_2; y++) {
     for (int x = 0; x < width_pow_2; x++) {

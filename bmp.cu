@@ -45,7 +45,7 @@ void init_bmp(bmp* data, char* file_name) {
   print_bmp_data(bdata);
 
   // read the data of the image
-  data->data = (char*)malloc(sizeof(char) * bdata->bitmapsize);
+  data->data = (unsigned char*)malloc(sizeof(char) * bdata->bitmapsize);
   if(data->data==NULL){
     // error - cleanup
     fclose(file);
@@ -55,8 +55,8 @@ void init_bmp(bmp* data, char* file_name) {
     printf("error reading image data\n");
     return;
   }
-  fseek(file, sizeof(char) * fdata->dataoffset, SEEK_SET);
-  n=fread(data->data, sizeof(char), bdata->bitmapsize, file);
+  fseek(file, sizeof(unsigned char) * fdata->dataoffset, SEEK_SET);
+  n=fread(data->data, sizeof(unsigned char), bdata->bitmapsize, file);
   if(n<1){
     // error - cleanup
     fclose(file);
@@ -91,7 +91,7 @@ void bmp_to_file(bmp* data, char* file_name) {
   char bm[2];
   bm[0] = 'B';
   bm[1] = 'M';
-  n = fwrite(bm, sizeof(char) * 2, 1, out);
+  n = fwrite(bm, sizeof(unsigned char) * 2, 1, out);
   if (n < 1) {
     // cleanup
     fclose(out);
@@ -99,7 +99,7 @@ void bmp_to_file(bmp* data, char* file_name) {
   }
 
   // write header to file
-  n = fwrite(bdata, sizeof(char), sizeof(bmp_header), out);
+  n = fwrite(bdata, sizeof(unsigned char), sizeof(bmp_header), out);
   if (n < 1) {
     // cleanup
     fclose(out);
@@ -107,8 +107,8 @@ void bmp_to_file(bmp* data, char* file_name) {
   }
 
   // write data to file
-  fseek(out, sizeof(char) * fdata->dataoffset, SEEK_SET);
-  n = fwrite(data->data, sizeof(char), bdata->bitmapsize, out);
+  fseek(out, sizeof(unsigned char) * fdata->dataoffset, SEEK_SET);
+  n = fwrite(data->data, sizeof(unsigned char), bdata->bitmapsize, out);
   if (n < 1) {
     // cleanup
     fclose(out);
@@ -205,7 +205,7 @@ int convert_le_4(int data) {
 }
 
 void extract_rgb_cpu(bmp* bmpdata, image* img) {
-  char* data = bmpdata->data;
+  unsigned char* data = bmpdata->data;
   bmp_header* bdata = &(bmpdata->bmpheader);
   int bytespercolor = bdata->bitsperpixel / 24; // generally equals 1
   int bytesperrow_new = bytespercolor * bdata->width;
@@ -215,11 +215,11 @@ void extract_rgb_cpu(bmp* bmpdata, image* img) {
   }
   int bytesperpixel = bytespercolor * 3; // generall equals 3
 
-  char* red = (char*)malloc(bdata->width * bdata->height * bytespercolor);
-  char* green = (char*)malloc(bdata->width * bdata->height * bytespercolor);
-  char* blue = (char*)malloc(bdata->width * bdata->height * bytespercolor);
+  unsigned char* red = (unsigned char*)malloc(bdata->width * bdata->height * bytespercolor);
+  unsigned char* green = (unsigned char*)malloc(bdata->width * bdata->height * bytespercolor);
+  unsigned char* blue = (unsigned char*)malloc(bdata->width * bdata->height * bytespercolor);
 
-  char** converted_data = (char**)malloc(3 * sizeof(char*));
+  unsigned char** converted_data = (unsigned char**)malloc(3 * sizeof(unsigned char*));
   converted_data[0] = red;
   converted_data[1] = green;
   converted_data[2] = blue;
@@ -251,8 +251,8 @@ void extract_rgb_cpu(bmp* bmpdata, image* img) {
 }
 
 void combine_rgb_cpu(bmp* bmpdata, image* img) {
-  char** data = img->data;
-  char* combined_data = bmpdata->data;
+  unsigned char** data = img->data;
+  unsigned char* combined_data = bmpdata->data;
   bmp_header* bdata = &(bmpdata->bmpheader);
   int bytespercolor = bdata->bitsperpixel / 24; // generally equals 1
   int bytesperrow_old = bytespercolor * bdata->width;
@@ -260,7 +260,7 @@ void combine_rgb_cpu(bmp* bmpdata, image* img) {
   while (bytesperrow_new % 4 != 0) { // BMP format requires row length % 4 == 0
     bytesperrow_new++;
   }
-  int bytesperpixel = bytespercolor * 3; // generall equals 3
+  int bytesperpixel = bytespercolor * 3; // generally equals 3
 
   for (int color = 0; color < 3; color++) {
     int color_new = color * bytespercolor;

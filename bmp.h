@@ -30,7 +30,7 @@ typedef struct {
   bmp_header bmpheader;
     // 2D array, indexed first by one-dimensional pixel number then R/G/B val
     // for example data[y * width + x][0] = redval;
-  char* data;
+  unsigned char* data;
 } bmp;
 
 typedef struct {
@@ -38,7 +38,7 @@ typedef struct {
   int height;
   int bytespercolor;
 
-  char** data;
+  unsigned char** data;
 }  image;
 
 
