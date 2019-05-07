@@ -50,15 +50,6 @@ void print_bmp_data(bmp_header *data);
 
 
 
-// LITTLE ENDIAN TO BIG ENDIAN CONVERSIONS
-
-void convert_le(bmp_header *data);
-
-short convert_le_2(short data);
-int convert_le_4(int data);
-
-
-
 // IMAGE CONVERSIONS
 
 // convert from data[row][col][r/g/b] to data[r/g/b][row][col]

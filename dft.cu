@@ -85,7 +85,7 @@ void blur(image* img) {
         int offset_data = row_data + col_data;
         int offset_arr = row_arr + col_arr;
 
-        unsigned int value = (unsigned int)(data[color][offset_data + i]);
+        unsigned int value = (unsigned int)(data[color][offset_data]);
         double dvalue = (double)value;
         dvalue /= 256.0;
 
@@ -165,10 +165,6 @@ void blur(image* img) {
   free(blue);
   free(arr);
   free(kernel);
-  free(red_s);
-  free(green_s);
-  free(blue_s);
-  free(colors_s);
 }
 
 
