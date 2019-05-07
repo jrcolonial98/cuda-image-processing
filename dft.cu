@@ -58,7 +58,8 @@ void blur(image* img) {
   carr[2] = carr_blue;
 
   // create gaussian kernel
-  complex* kernel = get_gaussian_kernel(img->height, img->width, 0.2, 0.2);
+  //complex* kernel = get_gaussian_kernel(img->height, img->width, 0.2, 0.2);
+  complex* kernel = get_gaussian_kernel(img->height, img->width, height_pow_2, width_pow_2, 0.2, 0.2);
 
   // FFT on kernel
   carray2d karr;
@@ -141,10 +142,10 @@ void blur(image* img) {
     }
 
     printf("blur: inverse DFT by column\n");
-    dft_col(carr + i, true);
+    dft_row(carr + i, true);
 
     printf("blur: inverse DFT by row\n");
-    dft_row(carr + i, true);
+    dft_col(carr + i, true);
   }
 
   // convert back to data
@@ -310,12 +311,7 @@ void normalize(carray2d* carr) {
 }
 
 // create gaussian kernel for blurring
-complex* get_gaussian_kernel(int height, int width, double sigmax, double sigmay) {
-  int height_pow_2 = 1;
-  while (height_pow_2 < height) height_pow_2 *= 2;
-  int width_pow_2 = 1;
-  while (width_pow_2 < width) width_pow_2 *= 2;
-
+complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_pow_2, double sigmax, double sigmay) {
   printf("Generating Gaussian kernel of %d by %d\n", width_pow_2, height_pow_2);
 
   complex* kernel = (complex*)malloc(height_pow_2 * width_pow_2 * sizeof(complex));
@@ -344,8 +340,9 @@ complex* get_gaussian_kernel(int height, int width, double sigmax, double sigmay
       if (col < 0) col += width_pow_2;
       int offset = row * width_pow_2 + col;
 
-      //temp = exp( -(double)((y-meany)*(y-meany) + (x-meanx)*(x-meanx))  / (sigma));
+      //temp = exp( -((y-meany)*(y-meany) + (x-meanx)*(x-meanx))  / (sigma));
       temp = exp( -0.5 * (pow(((double)x-meanx)/sigma, 2.0) + pow(((double)y-meany)/sigma,2.0)) ) / (2.0 * M_PI * sigma * sigma);
+      
       complex c;
       c.real = temp;
       c.imaginary = 0.0;
