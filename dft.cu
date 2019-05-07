@@ -72,7 +72,7 @@ void blur(image* img) {
   for (int y = 0; y < height_pow_2; y++) {
     for (int x = 0; x < width_pow_2; x++) {
       if (complex_abs(kernel + (y * width_pow_2 + x)) < 0.000001) {
-        kernel[y * width_pow_2 + x].real = 0.000001;
+        //kernel[y * width_pow_2 + x].real = 0.000001;
       }
     }
   }
@@ -129,14 +129,11 @@ void blur(image* img) {
     dft_col(carr + i, false);
 
     printf("blur: round\n");
-    //round(carr + i, 0.0);
-    int row_padding = (height_pow_2 - img->height) / 2;
-    int col_padding = (width_pow_2 - img->width) / 2;
+//    round(carr + i, 0.15);
     for (int y = 0; y < height_pow_2; y++) {
       int row_offset = y * width_pow_2;
       for (int x = 0; x < width_pow_2; x++) {
         int offset = row_offset + x;
-        int offset_kernel = offset + (height_pow_2 / 2 * width_pow_2) + width_pow_2 / 2;
         complex c1 = kernel[offset];
         complex c2 = arr[i][offset];
         arr[i][offset] = complex_mult(&c1, &c2);
