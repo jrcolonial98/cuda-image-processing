@@ -13,10 +13,10 @@ void blur(image* image, bool parallel);
 // BLUR HELPERS
 
 // DFT by row
-void dft_row(carray2d* carr, bool inv);
+void dft_row(carray2d* carr, bool inv, bool parallel);
 
 // DFT by column
-void dft_col(carray2d* carr, bool inv);
+void dft_col(carray2d* carr, bool inv, bool parallel);
 
 // create gaussian kernel for blurring
 complex* get_gaussian_kernel(int height, int width, int height_pow_2, int width_pow_2, double sigma);

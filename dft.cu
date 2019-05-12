@@ -11,7 +11,6 @@ __global__ void fft_gpu(carray1d* carr, bool inv) {
     logn += 1;
   }
 
-  complex result1, result2;
   for (int level = 1; level <= logn; level++) {
     // diff b/w cons elements in odd/even: n / pow(2, level)
 
@@ -30,8 +29,8 @@ __global__ void fft_gpu(carray1d* carr, bool inv) {
       complex o_factor = complex_mult(&o, &factor);
 
       __syncthreads();
-      result[x] = complex_add(&e, &o_factor);
-      result[x + dx] = complex_sub(&e, &o_factor);
+      arr[x] = complex_add(&e, &o_factor);
+      arr[x + dx] = complex_sub(&e, &o_factor);
       __syncthreads();
     }
 
