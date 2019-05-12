@@ -242,10 +242,11 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
     int row_offset = len * i;
     complex* arow = arr + row_offset;
 
-    // copy into padded array
+    // copy into array
     for (int j = 0; j < len; j++) {
       row[j] = arow[j];
     }
+    return;
 
     // perform FFT
     if (parallel) {
@@ -282,7 +283,7 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
   // for every column
   for (int i = 0; i < carr->x; i++) {
 
-    // copy into padded array
+    // copy into array
     for (int j = 0; j < len; j++) {
       col[j] = arr[j * len + i];
     }
