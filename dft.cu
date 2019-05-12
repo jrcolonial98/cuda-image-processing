@@ -3,10 +3,10 @@
 // KERNELS
 
 __global__ void fft_gpu(complex* arr, int n, bool inv) {
-  int n = 1;
+  int m = 1;
   int logn = 0;
-  while (n < carr->x) {
-    n *= 2;
+  while (m < n) {
+    m *= 2;
     logn += 1;
   }
 
@@ -257,7 +257,7 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
     }
     else {
       carray1d crow;
-      crow.arr = padded_row;
+      crow.arr = row;
       crow.x = len;
       fft(&crow, inv);
     }
