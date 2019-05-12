@@ -23,16 +23,16 @@ int main(int argc, char *argv[]) {
   // blur image
   float time;
   if (parallel) {
-    printf("Blurring image (SERIAL)...\n\n");
-    cstart();
-    blur(&img, false);
-    cend(&time);
+    printf("Blurring image (PARALLEL)...\n\n");
+    //cstart();
+    blur(&img, true);
+    //cend(&time);
   }
   else {
-    printf("Blurring image (PARALLEL)...\n\n");
-    cstart();
-    blur(&img, true);
-    cend(&time);
+    printf("Blurring image (SERIAL)...\n\n");
+    //cstart();
+    blur(&img, false);
+    //cend(&time);
   }
   printf("Time taken: %f", time);
 

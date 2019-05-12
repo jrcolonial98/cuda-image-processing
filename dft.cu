@@ -67,6 +67,7 @@ void blur(image* img, bool parallel) {
   while (width_pow_2 < img->width) width_pow_2 *= 2;
   int height_pow_2 = 1;
   while (height_pow_2 < img->height) height_pow_2 *= 2;
+
   printf("Allocating array of %d by %d\n", width_pow_2, height_pow_2);
   complex zero;
   zero.real = 0.0;
@@ -236,7 +237,7 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
   complex* row = (complex*)malloc(len * sizeof(complex));
   complex* grow;
   cudaMalloc((void**) &grow, len * sizeof(complex));
-
+return;
   // for every row
   for (int i = 0; i < carr->y; i++) {
     int row_offset = len * i;
@@ -246,7 +247,6 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
     for (int j = 0; j < len; j++) {
       row[j] = arow[j];
     }
-    return;
 
     // perform FFT
     if (parallel) {
