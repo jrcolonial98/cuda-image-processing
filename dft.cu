@@ -2,8 +2,7 @@
 
 // KERNELS
 
-__global__ void fft_gpu(carray1d* carr, bool inv) {
-  complex* arr = carr->arr;
+__global__ void fft_gpu(complex* arr, int n, bool inv) {
   int n = 1;
   int logn = 0;
   while (n < carr->x) {
@@ -232,97 +231,86 @@ void blur(image* img, bool parallel) {
 // DFT by row
 void dft_row(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
+  int len = carr->x;
 
-  // generate padded array
-  int least_pow_2 = 1;
-  while (least_pow_2 < carr->x) {
-    least_pow_2 *= 2;
+  complex* row;
+  if (parallel) {
+    cudaMalloc((void**) &row, len * sizeof(complex));
   }
-  complex zero;
-  zero.real = 0.0;
-  zero.imaginary = 0.0;
-  complex* padded_row = (complex*)malloc(least_pow_2 * sizeof(complex));
+  else {
+    row = (complex*)malloc(len * sizeof(complex));
+  }
 
   // for every row
   for (int i = 0; i < carr->y; i++) {
     int row_offset = carr->x * i;
-    complex* row = arr + row_offset;
+    complex* arow = arr + row_offset;
 
     // copy into padded array
-    for (int j = 0; j < least_pow_2; j++) {
-      if (j < carr->x) {
-        padded_row[j] = row[j];
-      }
-      else {
-        padded_row[j] = zero;
-      }
+    for (int j = 0; j < len; j++) {
+      row[j] = arow[j];
     }
 
     // perform FFT
-    carray1d crow;
-    crow.arr = padded_row;
-    crow.x = least_pow_2;
     if (parallel) {
-      fft_gpu<<<1, 1024>>>(&crow, inv);
+      fft_gpu<<<1, 1024>>>(row, len, inv);
     }
     else {
+      carray1d crow;
+      crow.arr = padded_row;
+      crow.x = len;
       fft(&crow, inv);
     }
 
     // copy back from padded array
     for (int j = 0; j < carr->x; j++) {
-      row[j] = padded_row[j];
+      arow[j] = row[j];
     }
   }
 
-  free(padded_row);
+  free(row);
 }
 
 // DFT by column
 void dft_col(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
+  int len = carr->y;
 
-  // generate padded array
-  int least_pow_2 = 1;
-  while (least_pow_2 < carr->y) {
-    least_pow_2 *= 2;
+  complex* col;
+  if (parallel) {
+    cudaMalloc((void**) &col, len * sizeof(complex));
   }
-  complex zero;
-  zero.real = 0.0;
-  zero.imaginary = 0.0;
-  complex* padded_col = (complex*)malloc(least_pow_2 * sizeof(complex));
+  else {
+    col = (complex*)malloc(len * sizeof(complex));
+  }
 
   // for every column
   for (int i = 0; i < carr->x; i++) {
 
     // copy into padded array
-    for (int j = 0; j < least_pow_2; j++) {
-      if (j < carr->y) {
-        padded_col[j] = arr[j * carr->x + i];
-      }
-      else {
-        padded_col[j] = zero;
-      }
+    for (int j = 0; j < len; j++) {
+      col[j] = arr[j * len + i];
     }
 
     // perform FFT
-    carray1d ccol;
-    ccol.arr = padded_col;
-    ccol.x = least_pow_2;
+
     if (parallel) {
-      fft_gpu<<<1, 1024>>>(&ccol, inv);
+      fft_gpu<<<1, 1024>>>(col, len, inv);
     }
     else {
+      carray1d ccol;
+      ccol.arr = col;
+      ccol.x = len;
       fft(&ccol, inv); // transform array
     }
 
     // copy back from padded array
-    for (int j = 0; j < carr->y; j++) {
-      arr[j * carr->x + i] = padded_col[j];
+    for (int j = 0; j < len; j++) {
+      arr[j * len + i] = col[j];
     }
   }
 
-  free(padded_col);
+  free(col);
 }
 
 // create gaussian kernel for blurring
