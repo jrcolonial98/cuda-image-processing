@@ -25,14 +25,14 @@ int main(int argc, char *argv[]) {
   if (parallel) {
     printf("Blurring image (SERIAL)...\n\n");
     cstart();
-    blur(&img, true);
+    blur(&img, false);
     cend(&time);
   }
   else {
     printf("Blurring image (PARALLEL)...\n\n");
-    gstart();
-    blur(&img, false);
-    gend(&time);
+    cstart();
+    blur(&img, true);
+    cend(&time);
   }
   printf("Time taken: %f", time);
 
