@@ -233,17 +233,13 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
   int len = carr->x;
 
-  complex* row;
-  if (parallel) {
-    cudaMalloc((void**) &row, len * sizeof(complex));
-  }
-  else {
-    row = (complex*)malloc(len * sizeof(complex));
-  }
+  complex* row = (complex*)malloc(len * sizeof(complex));
+  complex* grow;
+  cudaMalloc((void**) &grow, len * sizeof(complex));
 
   // for every row
   for (int i = 0; i < carr->y; i++) {
-    int row_offset = carr->x * i;
+    int row_offset = len * i;
     complex* arow = arr + row_offset;
 
     // copy into padded array
@@ -253,7 +249,9 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
 
     // perform FFT
     if (parallel) {
+      cudaMemcpy(grow, row, len * sizeof(complex), cudaMemcpyHostToDevice);
       fft_gpu<<<1, 1024>>>(row, len, inv);
+      cudaMemcpy(row, grow, len * sizeof(complex), cudaMemcpyDeviceToHost);
     }
     else {
       carray1d crow;
@@ -263,12 +261,13 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
     }
 
     // copy back from padded array
-    for (int j = 0; j < carr->x; j++) {
+    for (int j = 0; j < len; j++) {
       arow[j] = row[j];
     }
   }
 
   free(row);
+  cudaFree(grow);
 }
 
 // DFT by column
@@ -276,13 +275,9 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
   int len = carr->y;
 
-  complex* col;
-  if (parallel) {
-    cudaMalloc((void**) &col, len * sizeof(complex));
-  }
-  else {
-    col = (complex*)malloc(len * sizeof(complex));
-  }
+  complex* col = (complex*)malloc(len * sizeof(complex));
+  complex* gcol;
+  cudaMalloc((void**) &gcol, len * sizeof(complex));
 
   // for every column
   for (int i = 0; i < carr->x; i++) {
@@ -295,7 +290,9 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
     // perform FFT
 
     if (parallel) {
+      cudaMemcpy(gcol, col, len * sizeof(complex), cudaMemcpyHostToDevice);
       fft_gpu<<<1, 1024>>>(col, len, inv);
+      cudaMemcpy(col, gcol, len * sizeof(complex), cudaMemcpyHostToDevice);
     }
     else {
       carray1d ccol;
@@ -311,6 +308,7 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
   }
 
   free(col);
+  cudaFree(gcol);
 }
 
 // create gaussian kernel for blurring
