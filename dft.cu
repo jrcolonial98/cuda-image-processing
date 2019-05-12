@@ -219,7 +219,7 @@ void blur(image* img, bool parallel) {
 // BLUR HELPERS
 
 // DFT by row
-void dft_row(carray2d* carr, bool inv) {
+void dft_row(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
 
   // generate padded array
