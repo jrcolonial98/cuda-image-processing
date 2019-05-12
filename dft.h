@@ -7,8 +7,7 @@
 // API ENDPOINTS
 
 // "blur" the values of a 2d array
-void blur(image* image);
-
+void blur(image* image, bool parallel);
 
 
 // BLUR HELPERS

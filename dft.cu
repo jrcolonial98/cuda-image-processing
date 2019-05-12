@@ -1,10 +1,56 @@
 #include "dft.h"
 
+// KERNELS
+
+__global__ void fft_gpu(carray1d* carr, bool inv) {
+  complex* arr = carr->arr;
+  int n = 1;
+  int logn = 0;
+  while (n < carr->x) {
+    n *= 2;
+    logn += 1;
+  }
+
+  complex result1, result2;
+  for (int level = 1; level <= logn; level++) {
+    // diff b/w cons elements in odd/even: n / pow(2, level)
+
+    int oldSize = pow(2, level - 1);
+    int newSize = 2 * oldSize; // the size of the group we are expanding into
+    int dx = n / newSize;
+    int x = (threadIdx.x / dx) * (2 * dx) + (threadIdx.x % dx);
+    int k = threadIdx.x / dx;
+
+
+    if (threadIdx.x < n/2) {
+      complex o = arr[threadIdx.x];
+      complex e = arr[threadIdx.x + dx];
+
+      complex factor = exp_to_complex(k, newSize, inv);
+      complex o_factor = complex_mult(&o, &factor);
+
+      __syncthreads();
+      result[x] = complex_add(&e, &o_factor);
+      result[x + dx] = complex_sub(&e, &o_factor);
+      __syncthreads();
+    }
+
+  }
+
+  // scale at very end, only once
+  if (inv) {
+    double scale = 1.0 / (double)n;
+    for (int i = 0; i < n; i++) {
+      arr[i] = complex_scale(arr + i, scale);
+    }
+  }
+}
+
 
 // API ENDPOINTS
 
 // "blur" the values of a 2d array
-void blur(image* img) {
+void blur(image* img, bool parallel) {
   unsigned char** data = img->data;
 
   // allocate an array of complex numbers for DFT operations
@@ -66,10 +112,11 @@ void blur(image* img) {
   karr.arr = kernel;
   karr.y = height_pow_2;
   karr.x = width_pow_2;
+
   printf("kernel: DFT by row\n");
-  dft_row(&karr, false);
+  dft_row(&karr, false, parallel);
   printf("kernel: DFT by column\n");
-  dft_col(&karr, false);
+  dft_col(&karr, false, parallel);
 
   // convert data into complex numbers
   // TODO: move into helper function
@@ -111,10 +158,10 @@ void blur(image* img) {
     printf("blur: beginning DFT on %s pixels\n", colors_s[i]);
 
     printf("blur: DFT by row\n");
-    dft_row(carr + i, false);
+    dft_row(carr + i, false, parallel);
 
     printf("blur: DFT by column\n");
-    dft_col(carr + i, false);
+    dft_col(carr + i, false, parallel);
 
     printf("blur: apply filter\n");
     for (int y = 0; y < height_pow_2; y++) {
@@ -128,11 +175,12 @@ void blur(image* img) {
     }
 
     printf("blur: inverse DFT by column\n");
-    dft_row(carr + i, true);
+    dft_row(carr + i, true, parallel);
 
     printf("blur: inverse DFT by row\n");
-    dft_col(carr + i, true);
+    dft_col(carr + i, true, parallel);
   }
+
 
   // convert back to data
   // TODO: move into helper function
@@ -204,7 +252,12 @@ void dft_row(carray2d* carr, bool inv) {
     carray1d crow;
     crow.arr = padded_row;
     crow.x = least_pow_2;
-    fft(&crow, inv);
+    if (parallel) {
+      fft_gpu<<<1, 1024>>>(&crow, inv);
+    }
+    else {
+      fft(&crow, inv);
+    }
 
     // copy back from padded array
     for (int j = 0; j < carr->x; j++) {
@@ -216,7 +269,7 @@ void dft_row(carray2d* carr, bool inv) {
 }
 
 // DFT by column
-void dft_col(carray2d* carr, bool inv) {
+void dft_col(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
 
   // generate padded array
@@ -246,7 +299,12 @@ void dft_col(carray2d* carr, bool inv) {
     carray1d ccol;
     ccol.arr = padded_col;
     ccol.x = least_pow_2;
-    fft(&ccol, inv); // transform array
+    if (parallel) {
+      fft_gpu<<<1, 1024>>>(&ccol, inv);
+    }
+    else {
+      fft(&ccol, inv); // transform array
+    }
 
     // copy back from padded array
     for (int j = 0; j < carr->y; j++) {
