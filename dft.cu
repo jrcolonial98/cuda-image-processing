@@ -25,12 +25,22 @@ __global__ void fft_gpu(carray1d* carr, bool inv) {
       complex o = arr[threadIdx.x];
       complex e = arr[threadIdx.x + dx];
 
-      complex factor = exp_to_complex(k, newSize, inv);
-      complex o_factor = complex_mult(&o, &factor);
+      double exponent = -2 * M_PI * k / newSize;
+    	if (inv) exponent *= -1;
+    	complex factor;
+    	factor.real = cos(exponent);
+    	factor.imaginary = sin(exponent);
+
+      complex o_factor;
+    	o_factor.real = o.real * factor.real - o->imaginary * factor.imaginary;
+    	o_factor.imaginary = o.real * factor.imaginary + o.imaginary * factor.real;
 
       __syncthreads();
-      arr[x] = complex_add(&e, &o_factor);
-      arr[x + dx] = complex_sub(&e, &o_factor);
+      (arr[x]).real = e.real + o_factor.real;
+      (arr[x]).imaginary = e.imaginary + o_factor.imaginary;
+
+      (arr[x + dx]).real = e.real - o_factor.real;
+      (arr[x + dx]).imaginary = e.imaginary - o_factor.imaginary;
       __syncthreads();
     }
 
