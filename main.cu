@@ -42,6 +42,6 @@ int main(int argc, char *argv[]) {
   combine_rgb_cpu(&bitmap, &img);
   bmp_to_file(&bitmap, out_file_name);
 
-  free(bitmap->data);
-  free(img->data);
+  free(bitmap.data);
+  free(img.data);
 }

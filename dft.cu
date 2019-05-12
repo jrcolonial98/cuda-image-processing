@@ -26,14 +26,14 @@ __global__ void fft_gpu(carray1d* carr, bool inv) {
       complex e = arr[threadIdx.x + dx];
 
       double exponent = -2 * M_PI * k / newSize;
-    	if (inv) exponent *= -1;
-    	complex factor;
-    	factor.real = cos(exponent);
-    	factor.imaginary = sin(exponent);
+      if (inv) exponent *= -1;
+      complex factor;
+      factor.real = cos(exponent);
+      factor.imaginary = sin(exponent);
 
       complex o_factor;
-    	o_factor.real = o.real * factor.real - o->imaginary * factor.imaginary;
-    	o_factor.imaginary = o.real * factor.imaginary + o.imaginary * factor.real;
+      o_factor.real = o.real * factor.real - o.imaginary * factor.imaginary;
+      o_factor.imaginary = o.real * factor.imaginary + o.imaginary * factor.real;
 
       __syncthreads();
       (arr[x]).real = e.real + o_factor.real;
@@ -50,7 +50,8 @@ __global__ void fft_gpu(carray1d* carr, bool inv) {
   if (inv) {
     double scale = 1.0 / (double)n;
     for (int i = 0; i < n; i++) {
-      arr[i] = complex_scale(arr + i, scale);
+      (arr[i]).real *= scale;
+      (arr[i]).imaginary *= scale;
     }
   }
 }
