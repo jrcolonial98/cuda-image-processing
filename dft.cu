@@ -237,7 +237,7 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
   complex* row = (complex*)malloc(len * sizeof(complex));
   complex* grow;
   cudaMalloc((void**) &grow, len * sizeof(complex));
-return;
+
   // for every row
   for (int i = 0; i < carr->y; i++) {
     int row_offset = len * i;
@@ -251,7 +251,7 @@ return;
     // perform FFT
     if (parallel) {
       cudaMemcpy(grow, row, len * sizeof(complex), cudaMemcpyHostToDevice);
-      fft_gpu<<<1, 1024>>>(row, len, inv);
+      fft_gpu<<<1, 1024>>>(grow, len, inv);
       cudaMemcpy(row, grow, len * sizeof(complex), cudaMemcpyDeviceToHost);
     }
     else {
@@ -292,8 +292,8 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
 
     if (parallel) {
       cudaMemcpy(gcol, col, len * sizeof(complex), cudaMemcpyHostToDevice);
-      fft_gpu<<<1, 1024>>>(col, len, inv);
-      cudaMemcpy(col, gcol, len * sizeof(complex), cudaMemcpyHostToDevice);
+      fft_gpu<<<1, 1024>>>(gcol, len, inv);
+      cudaMemcpy(col, gcol, len * sizeof(complex), cudaMemcpyDeviceToHost);
     }
     else {
       carray1d ccol;

@@ -3,7 +3,11 @@
 #include "dft.h"
 #include "timerc.h"
 
+__global__ void warmup() {}
+
 int main(int argc, char *argv[]) {
+  warmup<<<1,1>>>();
+
   char* file_name = argv[1];
   bool parallel = argv[2][0] == 'p';
   char* out_file_name = "outtest.bmp";
