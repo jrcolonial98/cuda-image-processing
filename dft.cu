@@ -11,20 +11,23 @@ __global__ void fft_gpu(complex* arr, int n, bool inv) {
   }
 
   for (int level = 1; level <= logn; level++) {
-    // diff b/w cons elements in odd/even: n / pow(2, level)
+    int offset_old = (level - 1) * n;
+    int offset_new = offset_old + n;
 
     int oldSize = pow(2, level - 1);
     int newSize = 2 * oldSize; // the size of the group we are expanding into
     int dx = n / newSize;
-    int x = (threadIdx.x / dx) * (2 * dx) + (threadIdx.x % dx);
-    int k = threadIdx.x / dx;
+    int base = threadIdx.x % dx;
+    int x = (threadIdx.x / dx) * (2 * dx) + base;
+    int k_old = x / (2 * dx);
+    int k_new = x / dx;
 
 
     if (threadIdx.x < n/2) {
-      complex o = arr[threadIdx.x];
-      complex e = arr[threadIdx.x + dx];
+      complex e = arr[offset_old + x];
+      complex o = arr[offset_old + x + dx];
 
-      double exponent = -2 * M_PI * k / newSize;
+      double exponent = -2 * M_PI * k_old / newSize;
       if (inv) exponent *= -1;
       complex factor;
       factor.real = cos(exponent);
@@ -35,22 +38,27 @@ __global__ void fft_gpu(complex* arr, int n, bool inv) {
       o_factor.imaginary = o.real * factor.imaginary + o.imaginary * factor.real;
 
       __syncthreads();
-      (arr[x]).real = e.real + o_factor.real;
-      (arr[x]).imaginary = e.imaginary + o_factor.imaginary;
+      (arr[offset_new + base + k_old * dx]).real = e.real + o_factor.real;
+      (arr[offset_new + base + k_old * dx]).imaginary = e.imaginary + o_factor.imaginary;
 
-      (arr[x + dx]).real = e.real - o_factor.real;
-      (arr[x + dx]).imaginary = e.imaginary - o_factor.imaginary;
+      (arr[offset_new + base + (k_old + oldSize) * dx]).real = e.real - o_factor.real;
+      (arr[offset_new + base + (k_old + oldSize) * dx]).imaginary = e.imaginary - o_factor.imaginary;
       __syncthreads();
     }
 
   }
 
   // scale at very end, only once
-  if (inv) {
+  if (inv && threadIdx.x < n) {
+    int scales_per_thd = 1;
+    if (n > blockDim.x) {
+      scales_per_thd = n / blockDim.x;
+    }
     double scale = 1.0 / (double)n;
-    for (int i = 0; i < n; i++) {
-      (arr[i]).real *= scale;
-      (arr[i]).imaginary *= scale;
+    for (int i = 0; i < scales_per_thd; i++) {
+      int offset = threadIdx.x + i * blockDim.x;
+      (arr[logn * n + offset]).real *= scale;
+      (arr[logn * n + offset]).imaginary *= scale;
     }
   }
 }
@@ -232,14 +240,17 @@ void blur(image* img, bool parallel) {
 // DFT by row
 void dft_row(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
-  //int len = carr->x;
   int len = 1;
-  while (len < carr->x) len *= 2;
+  int loglen = 0;
+  while (len < carr->x) {
+    len *= 2;
+    loglen += 1;
+  }
 
 
   complex* row = (complex*)malloc(len * sizeof(complex));
   complex* grow;
-  cudaMalloc((void**) &grow, len * sizeof(complex));
+  cudaMalloc((void**) &grow, len * (loglen + 1) * sizeof(complex));
 
   // for every row
   for (int i = 0; i < carr->y; i++) {
@@ -255,7 +266,7 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
     if (parallel) {
       cudaMemcpy(grow, row, len * sizeof(complex), cudaMemcpyHostToDevice);
       fft_gpu<<<1, 1024>>>(grow, len, inv);
-      cudaMemcpy(row, grow, len * sizeof(complex), cudaMemcpyDeviceToHost);
+      cudaMemcpy(row, grow + loglen * len, len * sizeof(complex), cudaMemcpyDeviceToHost);
     }
     else {
       carray1d crow;
@@ -277,22 +288,23 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
 // DFT by column
 void dft_col(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
-  //int len = carr->y;
   int len = 1;
-  while (len < carr->y) len *= 2;
-
+  int loglen = 0;
+  while (len < carr->y) {
+    len *= 2;
+    loglen += 1;
+  }
 
 
   complex* col = (complex*)malloc(len * sizeof(complex));
   complex* gcol;
-  cudaMalloc((void**) &gcol, len * sizeof(complex));
+  cudaMalloc((void**) &gcol, len * (loglen + 1) * sizeof(complex));
 
   // for every column
   for (int i = 0; i < carr->x; i++) {
-
     // copy into array
     for (int j = 0; j < len; j++) {
-      col[j] = arr[j * len + i];
+      col[j] = arr[j * carr->x + i];
     }
 
     // perform FFT
@@ -300,7 +312,7 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
     if (parallel) {
       cudaMemcpy(gcol, col, len * sizeof(complex), cudaMemcpyHostToDevice);
       fft_gpu<<<1, 1024>>>(gcol, len, inv);
-      cudaMemcpy(col, gcol, len * sizeof(complex), cudaMemcpyDeviceToHost);
+      cudaMemcpy(col, gcol + loglen * len, len * sizeof(complex), cudaMemcpyDeviceToHost);
     }
     else {
       carray1d ccol;
@@ -311,7 +323,7 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
 
     // copy back from padded array
     for (int j = 0; j < len; j++) {
-      arr[j * len + i] = col[j];
+      arr[j * carr->x + i] = col[j];
     }
   }
 
