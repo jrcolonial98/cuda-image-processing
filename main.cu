@@ -28,17 +28,17 @@ int main(int argc, char *argv[]) {
   float time;
   if (parallel) {
     printf("Blurring image (PARALLEL)...\n\n");
-    //cstart();
+    cstart();
     blur(&img, true);
-    //cend(&time);
+    cend(&time);
   }
   else {
     printf("Blurring image (SERIAL)...\n\n");
-    //cstart();
+    cstart();
     blur(&img, false);
-    //cend(&time);
+    cend(&time);
   }
-  printf("Time taken: %f", time);
+  printf("Time taken: %f\n", time);
 
 
   // write to file

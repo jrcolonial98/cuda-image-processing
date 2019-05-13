@@ -311,7 +311,7 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
 
     if (parallel) {
       cudaMemcpy(gcol, col, len * sizeof(complex), cudaMemcpyHostToDevice);
-      fft_gpu<<<1, 1024>>>(gcol, len, inv);
+      fft_gpu<<<1, 512>>>(gcol, len, inv);
       cudaMemcpy(col, gcol + loglen * len, len * sizeof(complex), cudaMemcpyDeviceToHost);
     }
     else {
