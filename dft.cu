@@ -232,7 +232,10 @@ void blur(image* img, bool parallel) {
 // DFT by row
 void dft_row(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
-  int len = carr->x;
+  //int len = carr->x;
+  int len = 1;
+  while (len < carr->x) len *= 2;
+
 
   complex* row = (complex*)malloc(len * sizeof(complex));
   complex* grow;
@@ -274,7 +277,11 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
 // DFT by column
 void dft_col(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
-  int len = carr->y;
+  //int len = carr->y;
+  int len = 1;
+  while (len < carr->y) len *= 2;
+
+
 
   complex* col = (complex*)malloc(len * sizeof(complex));
   complex* gcol;
