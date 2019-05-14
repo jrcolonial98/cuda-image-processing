@@ -84,11 +84,14 @@ __global__ void dft_gpu(complex* arr, int dimx, int dimy, bool inv, bool by_row)
     if (n > blockDim.x) {
       scales_per_thd = n / blockDim.x;
     }
+
     double scale = 1.0 / (double)n;
+    int arr_offset = logn * dimx * dimy;
+
     for (int i = 0; i < scales_per_thd; i++) {
-      int offset = threadIdx.x + i * blockDim.x;
-      (arr[logn * n + offset]).real *= scale;
-      (arr[logn * n + offset]).imaginary *= scale;
+      int thd_offset = (threadIdx.x + i * blockDim.x) * list_dx;
+      (arr[arr_offset + list_offset + thd_offset]).real *= scale;
+      (arr[arr_offset + list_offset + thd_offset]).imaginary *= scale;
     }
   }
 }
