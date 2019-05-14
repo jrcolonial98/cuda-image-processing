@@ -2,47 +2,73 @@
 
 // KERNELS
 
-__global__ void fft_gpu(complex* arr, int n, bool inv) {
-  int m = 1;
+__global__ void dft_gpu(complex* arr, int dimx, int dimy, bool inv, bool by_row) {
+  // initialize things specific to the block and the type of FFT (by row, by col)
+  int list_idx = blockIdx.x; // which row or column we are on
+  int list_offset; // the difference between the start of the array and the list
+  int list_dx; // the difference between two items on the row or column
+  if (by_row) {
+    n = dimx;
+    list_offset = dimx * list_idx;
+    list_dx = 1;
+  }
+  else {
+    n = dimy;
+    list_offset = list_idx;
+    list_dx = dimx;
+  }
+
+  // get logN
+  int m_temp = 1;
   int logn = 0;
-  while (m < n) {
-    m *= 2;
+  while (m_temp < n) {
+    m_temp *= 2;
     logn += 1;
   }
 
   for (int level = 1; level <= logn; level++) {
-    int offset_old = (level - 1) * n;
-    int offset_new = offset_old + n;
+    int offset_old = (level - 1) * dimx * dimy + list_offset;
+    int offset_new = offset_old + dimx * dimy;
 
     int oldSize = pow(2, level - 1);
     int newSize = 2 * oldSize; // the size of the group we are expanding into
-    int dx = n / newSize;
-    int base = threadIdx.x % dx;
-    int x = (threadIdx.x / dx) * (2 * dx) + base;
-    int k_old = x / (2 * dx);
-    int k_new = x / dx;
+    int dx = n / newSize; // difference b/w two items in a list to be combined
+    int base = threadIdx.x % dx; // first element in the list
+    int x = (threadIdx.x / dx) * (2 * dx) + base; // the lower of the two elements this thread will combine
+    int k_old = x / (2 * dx); // the index of x within the old list
+    int k_new = x / dx; // within the new list
 
 
     if (threadIdx.x < n/2) {
-      complex e = arr[offset_old + x];
-      complex o = arr[offset_old + x + dx];
+      // offsets of the values to be read and then written
+      int in1_offset = x * list_dx;
+      int in2_offset = (x + dx) * list_dx;
+      int out1_offset = (base + k_old * dx) * list_dx;
+      int out2_offset = (base + (k_old + oldSize) * dx) * list_dx;
 
+      complex e = arr[offset_old + in1_offset];
+      complex o = arr[offset_old + in2_offset];
+
+      // exp_to_complex inlined
       double exponent = -2 * M_PI * k_old / newSize;
       if (inv) exponent *= -1;
       complex factor;
       factor.real = cos(exponent);
       factor.imaginary = sin(exponent);
 
+      // complex_mult inlined
       complex o_factor;
       o_factor.real = o.real * factor.real - o.imaginary * factor.imaginary;
       o_factor.imaginary = o.real * factor.imaginary + o.imaginary * factor.real;
 
       __syncthreads();
-      (arr[offset_new + base + k_old * dx]).real = e.real + o_factor.real;
-      (arr[offset_new + base + k_old * dx]).imaginary = e.imaginary + o_factor.imaginary;
+      // complex_add inlined
+      (arr[offset_new + out1_offset]).real = e.real + o_factor.real;
+      (arr[offset_new + out1_offset]).imaginary = e.imaginary + o_factor.imaginary;
 
-      (arr[offset_new + base + (k_old + oldSize) * dx]).real = e.real - o_factor.real;
-      (arr[offset_new + base + (k_old + oldSize) * dx]).imaginary = e.imaginary - o_factor.imaginary;
+      // complex_sub inlined
+      (arr[offset_new + out2_offset]).real = e.real - o_factor.real;
+      (arr[offset_new + out2_offset]).imaginary = e.imaginary - o_factor.imaginary;
       __syncthreads();
     }
 
@@ -247,12 +273,20 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
     loglen += 1;
   }
 
+  if (parallel) {
+    complex* garr;
+    cudaMalloc((void**) &garr, carr->x * carr->y * (loglen + 1) * sizeof(complex));
 
-  complex* row = (complex*)malloc(len * sizeof(complex));
-  complex* grow;
-  cudaMalloc((void**) &grow, len * (loglen + 1) * sizeof(complex));
+    cudaMemcpy(garr, arr, carr->x * carr->y * sizeof(complex), cudaMemcpyHostToDevice);
+    dft_gpu<<<1024, 1024>>>(garr, carr->x, carr->y, inv, true);
+    int offset = carr->x * carr->y * (loglen);
+    cudaMemcpy(arr, garr + offset, carr->x * carr->y * sizeof(complex), cudaMemcpyDeviceToHost);
+    return;
+  }
+
 
   // for every row
+  complex* row = (complex*)malloc(len * sizeof(complex));
   for (int i = 0; i < carr->y; i++) {
     int row_offset = len * i;
     complex* arow = arr + row_offset;
@@ -262,18 +296,10 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
       row[j] = arow[j];
     }
 
-    // perform FFT
-    if (parallel) {
-      cudaMemcpy(grow, row, len * sizeof(complex), cudaMemcpyHostToDevice);
-      fft_gpu<<<1, 1024>>>(grow, len, inv);
-      cudaMemcpy(row, grow + loglen * len, len * sizeof(complex), cudaMemcpyDeviceToHost);
-    }
-    else {
-      carray1d crow;
-      crow.arr = row;
-      crow.x = len;
-      fft(&crow, inv);
-    }
+    carray1d crow;
+    crow.arr = row;
+    crow.x = len;
+    fft(&crow, inv);
 
     // copy back from padded array
     for (int j = 0; j < len; j++) {
@@ -286,7 +312,7 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
 }
 
 // DFT by column
-void dft_col(carray2d* carr, bool inv, bool parallel) {
+void dft_col(carray2d* carr, bool inv, bool parallel, false) {
   complex* arr = carr->arr;
   int len = 1;
   int loglen = 0;
@@ -295,10 +321,16 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
     loglen += 1;
   }
 
+  if (parallel) {
+    complex* garr;
+    cudaMalloc((void**) &garr, carr->x * carr->y * (loglen + 1) * sizeof(complex));
 
-  complex* col = (complex*)malloc(len * sizeof(complex));
-  complex* gcol;
-  cudaMalloc((void**) &gcol, len * (loglen + 1) * sizeof(complex));
+    cudaMemcpy(garr, arr, carr->x * carr->y * sizeof(complex), cudaMemcpyHostToDevice);
+    dft_gpu<<<2048, 512>>>(garr, carr->x, carr->y, inv);
+    int offset = carr->x * carr->y * (loglen);
+    cudaMemcpy(arr, garr + offset, carr->x * carr->y * sizeof(complex), cudaMemcpyDeviceToHost);
+    return;
+  }
 
   // for every column
   for (int i = 0; i < carr->x; i++) {
@@ -308,18 +340,10 @@ void dft_col(carray2d* carr, bool inv, bool parallel) {
     }
 
     // perform FFT
-
-    if (parallel) {
-      cudaMemcpy(gcol, col, len * sizeof(complex), cudaMemcpyHostToDevice);
-      fft_gpu<<<1, 512>>>(gcol, len, inv);
-      cudaMemcpy(col, gcol + loglen * len, len * sizeof(complex), cudaMemcpyDeviceToHost);
-    }
-    else {
-      carray1d ccol;
-      ccol.arr = col;
-      ccol.x = len;
-      fft(&ccol, inv); // transform array
-    }
+    carray1d ccol;
+    ccol.arr = col;
+    ccol.x = len;
+    fft(&ccol, inv); // transform array
 
     // copy back from padded array
     for (int j = 0; j < len; j++) {
