@@ -4,6 +4,7 @@
 
 __global__ void dft_gpu(complex* arr, int dimx, int dimy, bool inv, bool by_row) {
   // initialize things specific to the block and the type of FFT (by row, by col)
+  int n; // length of row or column
   int list_idx = blockIdx.x; // which row or column we are on
   int list_offset; // the difference between the start of the array and the list
   int list_dx; // the difference between two items on the row or column
@@ -35,22 +36,22 @@ __global__ void dft_gpu(complex* arr, int dimx, int dimy, bool inv, bool by_row)
     int dx = n / newSize; // difference b/w two items in a list to be combined
     int base = threadIdx.x % dx; // first element in the list
     int x = (threadIdx.x / dx) * (2 * dx) + base; // the lower of the two elements this thread will combine
-    int k_old = x / (2 * dx); // the index of x within the old list
-    int k_new = x / dx; // within the new list
+    int k = x / (2 * dx); // the index of x within the old list
+    //int k_new = x / dx; // within the new list
 
 
     if (threadIdx.x < n/2) {
       // offsets of the values to be read and then written
       int in1_offset = x * list_dx;
       int in2_offset = (x + dx) * list_dx;
-      int out1_offset = (base + k_old * dx) * list_dx;
-      int out2_offset = (base + (k_old + oldSize) * dx) * list_dx;
+      int out1_offset = (base + k * dx) * list_dx;
+      int out2_offset = (base + (k + oldSize) * dx) * list_dx;
 
       complex e = arr[offset_old + in1_offset];
       complex o = arr[offset_old + in2_offset];
 
       // exp_to_complex inlined
-      double exponent = -2 * M_PI * k_old / newSize;
+      double exponent = -2 * M_PI * k / newSize;
       if (inv) exponent *= -1;
       complex factor;
       factor.real = cos(exponent);
@@ -308,7 +309,7 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
   }
 
   free(row);
-  cudaFree(grow);
+  cudaFree(garr);
 }
 
 // DFT by column
@@ -326,13 +327,14 @@ void dft_col(carray2d* carr, bool inv, bool parallel, false) {
     cudaMalloc((void**) &garr, carr->x * carr->y * (loglen + 1) * sizeof(complex));
 
     cudaMemcpy(garr, arr, carr->x * carr->y * sizeof(complex), cudaMemcpyHostToDevice);
-    dft_gpu<<<2048, 512>>>(garr, carr->x, carr->y, inv);
+    dft_gpu<<<2048, 512>>>(garr, carr->x, carr->y, inv, false);
     int offset = carr->x * carr->y * (loglen);
     cudaMemcpy(arr, garr + offset, carr->x * carr->y * sizeof(complex), cudaMemcpyDeviceToHost);
     return;
   }
 
   // for every column
+  complex* col = (complex*)malloc(len * sizeof(complex));;
   for (int i = 0; i < carr->x; i++) {
     // copy into array
     for (int j = 0; j < len; j++) {
@@ -352,7 +354,7 @@ void dft_col(carray2d* carr, bool inv, bool parallel, false) {
   }
 
   free(col);
-  cudaFree(gcol);
+  cudaFree(garr);
 }
 
 // create gaussian kernel for blurring
