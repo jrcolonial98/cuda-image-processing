@@ -5,16 +5,19 @@
 __global__ void dft_gpu(complex* arr, int dimx, int dimy, bool inv, bool by_row) {
   // initialize things specific to the block and the type of FFT (by row, by col)
   int n; // length of row or column
+  int num_lists;
   int list_idx = blockIdx.x; // which row or column we are on
   int list_offset; // the difference between the start of the array and the list
   int list_dx; // the difference between two items on the row or column
   if (by_row) {
     n = dimx;
+    num_lists = dimy;
     list_offset = dimx * list_idx;
     list_dx = 1;
   }
   else {
     n = dimy;
+    num_lists = dimx;
     list_offset = list_idx;
     list_dx = dimx;
   }
@@ -28,8 +31,8 @@ __global__ void dft_gpu(complex* arr, int dimx, int dimy, bool inv, bool by_row)
   }
 
   for (int level = 1; level <= logn; level++) {
-    int offset_old = (level - 1) * dimx * dimy + list_offset;
-    int offset_new = offset_old + dimx * dimy;
+    int offset_old = (level - 1) * dimx * dimy + list_offset; // absolute offset of list
+    int offset_new = offset_old + dimx * dimy; // same offset, moved up one level
 
     int oldSize = pow(2, level - 1);
     int newSize = 2 * oldSize; // the size of the group we are expanding into
@@ -40,7 +43,7 @@ __global__ void dft_gpu(complex* arr, int dimx, int dimy, bool inv, bool by_row)
     //int k_new = x / dx; // within the new list
 
 
-    if (threadIdx.x < n/2) {
+    if (threadIdx.x < n/2 && blockIdx.x < num_lists) {
       // offsets of the values to be read and then written
       int in1_offset = x * list_dx;
       int in2_offset = (x + dx) * list_dx;
