@@ -274,8 +274,8 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
     loglen += 1;
   }
 
+  complex* garr;
   if (parallel) {
-    complex* garr;
     cudaMalloc((void**) &garr, carr->x * carr->y * (loglen + 1) * sizeof(complex));
 
     cudaMemcpy(garr, arr, carr->x * carr->y * sizeof(complex), cudaMemcpyHostToDevice);
@@ -313,7 +313,7 @@ void dft_row(carray2d* carr, bool inv, bool parallel) {
 }
 
 // DFT by column
-void dft_col(carray2d* carr, bool inv, bool parallel, false) {
+void dft_col(carray2d* carr, bool inv, bool parallel) {
   complex* arr = carr->arr;
   int len = 1;
   int loglen = 0;
@@ -322,8 +322,8 @@ void dft_col(carray2d* carr, bool inv, bool parallel, false) {
     loglen += 1;
   }
 
+  complex* garr;
   if (parallel) {
-    complex* garr;
     cudaMalloc((void**) &garr, carr->x * carr->y * (loglen + 1) * sizeof(complex));
 
     cudaMemcpy(garr, arr, carr->x * carr->y * sizeof(complex), cudaMemcpyHostToDevice);
